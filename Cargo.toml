@@ -1,0 +1,11 @@
+[package]
+name = "fix"
+version = "0.1.0"
+authors = ["Aleksander Fular <ntszar@gmail.com>", "Piotr Mis <piotrekmis@gmail.com>"]
+
+[dependencies]
+chrono = "*"
+
+[dev-dependencies]
+quickcheck = "*"
+fix-derive = { path = "../fix-derive" }
