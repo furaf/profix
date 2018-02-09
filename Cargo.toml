@@ -8,4 +8,3 @@ chrono = "*"
 
 [dev-dependencies]
 quickcheck = "*"
-fix-derive = { path = "../fix-derive" }

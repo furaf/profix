@@ -1,22 +1,35 @@
-extern crate chrono;
 #[cfg(test)]
 extern crate quickcheck;
-#[macro_use]
-#[cfg(test)]
-extern crate fix_derive;
 
-mod message;
-mod field;
-mod serialize;
-mod deserialize;
-mod common;
+mod parsing;
+mod serialization;
 
 pub type ParseError = &'static str;
 
-pub use serialize::FixSerializable;
-pub use deserialize::FixDeserializable;
-pub use deserialize::FixParse;
-pub use message::FixMessage;
+pub use serialization::serialize;
+pub use serialization::deserialize;
 
-pub use serialize::serialize;
-pub use deserialize::deserialize;
+pub trait FixParse: Sized {
+    fn parse(value: &[u8]) -> Result<Self, ParseError>;
+}
+
+pub mod detail {
+    use super::ParseError;
+
+    pub use super::parsing::FixField;
+    pub use super::parsing::FixMessage;
+    pub use super::parsing::parse_fix_field;
+    pub use super::parsing::parse_fix_message;
+
+    pub trait FixSerializable {
+        fn serialize_body_to_fix(&self) -> String;
+    }
+
+    pub trait FixDeserializable: Sized {
+        fn deserialize_from_fix(msg: FixMessage) -> Result<Self, ParseError>;
+    }
+
+    pub trait FixMessageType {
+        const MSG_TYPE: &'static [u8];
+    }
+}
