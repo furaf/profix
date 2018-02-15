@@ -157,6 +157,23 @@ fn impl_fix_deserialize_struct(
                     #out: #out
                 });
             },
+            syn::Ty::Path(_, ref path) if path.segments.last().unwrap().ident == "Vec" => {
+                intros.push(quote! {
+                    let mut #out = vec![];
+                });
+                parses.push(quote! {
+                    #id => {
+                        if #out.is_none() {
+                            #out = Some(fix::FixParse::parse(_field.value)?);
+                        } else {
+                            return Err(#err_multiple);
+                        }
+                    },
+                });
+                conses.push(quote!{
+                    #out: #out
+                });
+            },
             _ => {
                 let err_missing = format!("{} missing {}", name, out);
                 intros.push(quote! {
