@@ -7,7 +7,6 @@ use super::ParseError;
 use std::num::Wrapping;
 use std::str;
 
-
 #[inline]
 pub fn serialize<T: FixSerializable>(t: &T) -> String {
     let body = t.serialize_body_to_fix();
@@ -30,7 +29,7 @@ pub fn checksum(input: &[u8]) -> Wrapping<u8> {
     sum
 }
 
-impl <F: str::FromStr> FixParse for F {
+impl<F: str::FromStr> FixParse for F {
     fn parse(value: &[u8]) -> Result<Self, ParseError> {
         let value = match str::from_utf8(value) {
             Ok(x) => x,

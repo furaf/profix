@@ -4,7 +4,6 @@ use std::ops::AddAssign;
 use std::ops::MulAssign;
 use super::ParseError;
 
-
 const VERSION_ID: u64 = 8u64;
 const LENGTH_ID: u64 = 9u64;
 const MSG_TYPE_ID: u64 = 35u64;
@@ -110,13 +109,14 @@ fn parse_header_field(id: u64, input: &[u8]) -> Result<(FixField, &[u8]), ParseE
             } else {
                 Err("FIX unexpected end of input when parsing header")
             }
-        },
+        }
         Err(e) => Err(e),
     }
 }
 
 fn parse_int<T>(value: &[u8]) -> Result<T, ParseError>
-    where T: From<u8> + MulAssign + AddAssign + Copy,
+where
+    T: From<u8> + MulAssign + AddAssign + Copy,
 {
     let value_len = value.len();
     if value_len == 0 {
@@ -125,7 +125,7 @@ fn parse_int<T>(value: &[u8]) -> Result<T, ParseError>
     let c = value[0];
     let Wrapping(digit) = Wrapping(c) - Wrapping('0' as u8);
     if digit > 9u8 {
-        return Err("FIX could not parse integer - invalid initial digit")
+        return Err("FIX could not parse integer - invalid initial digit");
     }
     let mut result = From::from(digit);
     let ten: T = From::from(10u8);
@@ -133,7 +133,7 @@ fn parse_int<T>(value: &[u8]) -> Result<T, ParseError>
         let c = value[k];
         let Wrapping(digit) = Wrapping(c) - Wrapping('0' as u8);
         if digit > 9u8 {
-            return Err("FIX could not parse length value")
+            return Err("FIX could not parse length value");
         }
         result *= ten;
         result += From::from(digit);
@@ -148,19 +148,26 @@ mod test {
     use quickcheck::*;
 
     pub fn to_fix(s: &str) -> Vec<u8> {
-        s.replace('|', "\x01").as_bytes().iter().map(|a|*a).collect()
+        s.replace('|', "\x01")
+            .as_bytes()
+            .iter()
+            .map(|a| *a)
+            .collect()
     }
 
     #[test]
     fn test_valid() {
         let msg = to_fix("8=FIX|asdf");
         let result = parse_fix_field(&msg);
-        assert_eq!(result, Ok(FixField{
-            id: 8u64,
-            value: b"FIX",
-            length: 6usize,
-            checksum: checksum(&to_fix("8=FIX|")),
-        }));
+        assert_eq!(
+            result,
+            Ok(FixField {
+                id: 8u64,
+                value: b"FIX",
+                length: 6usize,
+                checksum: checksum(&to_fix("8=FIX|")),
+            })
+        );
     }
 
     #[test]
@@ -220,11 +227,14 @@ mod test {
     fn test_header() {
         let msg = to_fix("8=FIX.4.2|9=10|35=A|34=1|10=123|");
         let result = parse_fix_message(&msg);
-        assert_eq!(result, Ok(FixMessage {
-            msg_type: b"A",
-            body: &to_fix("34=1|10=123|"),
-            header_checksum: checksum(&to_fix("8=FIX.4.2|9=10|35=A|")),
-        }));
+        assert_eq!(
+            result,
+            Ok(FixMessage {
+                msg_type: b"A",
+                body: &to_fix("34=1|10=123|"),
+                header_checksum: checksum(&to_fix("8=FIX.4.2|9=10|35=A|")),
+            })
+        );
     }
 
     #[test]
