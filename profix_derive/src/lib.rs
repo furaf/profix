@@ -20,6 +20,7 @@ pub fn fix_deserialize(input: TokenStream) -> TokenStream {
     let s = input.to_string();
     let ast = syn::parse_derive_input(&s).unwrap();
     let gen = impl_fix_deserialize(ast);
+//    panic!("{}", gen);
     match gen.parse() {
         Ok(ts) => ts,
         Err(e) => panic!("{:?}: {:?}", e, gen),
@@ -130,22 +131,59 @@ fn impl_fix_deserialize_struct(
 
     let fields = find_fix_fields(&fields);
 
-    let ids: Vec<_> = fields.iter().map(|f| f.id).collect();
-    let outs: Vec<_> = fields.iter().map(|f| &f.ident).collect();
-    let names: Vec<_> = fields.iter().map(|_| name.to_string()).collect();
+    let mut intros = vec![];
+    let mut parses = vec![];
+    let mut conses = vec![];
 
-    let (outs1, outs2, outs3, outs4, outs5, outs6, outs7) = (
-        outs.clone(),
-        outs.clone(),
-        outs.clone(),
-        outs.clone(),
-        outs.clone(),
-        outs.clone(),
-        outs.clone(),
-    );
-    let (names1, names2) = (names.clone(), names.clone());
+    for field in fields.iter() {
+        let out = &field.ident;
+        let id = field.id;
+        let err_multiple = format!("{} found multiple {}", name, out);
+        match field.ty{
+            syn::Ty::Path(_, ref path) if path.segments.last().unwrap().ident == "Option" => {
+                intros.push(quote! {
+                    let mut #out = None;
+                });
+                parses.push(quote! {
+                    #id => {
+                        if #out.is_none() {
+                            #out = Some(fix::FixParse::parse(_field.value)?);
+                        } else {
+                            return Err(#err_multiple);
+                        }
+                    },
+                });
+                conses.push(quote!{
+                    #out: #out
+                });
+            },
+            _ => {
+                let err_missing = format!("{} missing {}", name, out);
+                intros.push(quote! {
+                    let mut #out = Err(#err_missing);
+                });
+                parses.push(quote! {
+                    #id => {
+                        if #out.is_err() {
+                            #out = Ok(fix::FixParse::parse(_field.value)?);
+                        } else {
+                            return Err(#err_multiple);
+                        }
+                    },
+                });
+                conses.push(quote!{
+                    #out: #out?
+                });
+            },
+        }
+    }
 
     let dummy_const = syn::Ident::new(format!("_IMPL_FIX_DESERIALIZE_FOR_{}", name));
+
+    let err_invalid_checksum = format!("{} checksums do not match", name);
+    let err_input_end_before_checksum = format!("{} input ended before checksum", name);
+//    let err_input_after_checksum = format!("{} detected input after checksum", name);
+
     let tokens = quote! {
         #[allow(non_upper_case_globals)]
         const #dummy_const: () = {
@@ -157,57 +195,46 @@ fn impl_fix_deserialize_struct(
             }
 
             impl fix::detail::FixDeserializable for #name {
-                fn deserialize_from_fix(msg: fix::detail::FixMessage) -> Result<Self, fix::ParseError> {
-                    #(
-                        let mut #outs1 = Err(concat!(#names1, " missing ", stringify!(#outs2)));
-                    )*
+                fn deserialize_from_fix(_msg: fix::detail::FixMessage) -> Result<Self, fix::ParseError> {
+                    #( #intros )*
 
-                    let mut input = msg.body;
-                    let mut checksum = msg.header_checksum;
+                    let mut _input = _msg.body;
+                    let mut _checksum = _msg.header_checksum;
                     loop {
-                        let field = fix::detail::parse_fix_field(input)?;
+                        let _field = fix::detail::parse_fix_field(_input)?;
 
-                        match field.id {
-                            #(
-                                #ids => {
-                                    if #outs3.is_err() {
-                                        #outs4 = Ok(fix::FixParse::parse(field.value)?);
-                                    } else {
-                                        return Err(concat!(#names2, " found multiple ", stringify!(#outs5)));
-                                    }
-                                },
-                            )*
+                        match _field.id {
+                            #( #parses )*
                             #CHECKSUM_ID => {
                             // TODO: Fix this
                             /*
                                 if input.len() != field.length {
-                                    return Err(concat!(stringify!(#name), " detected input after checksum"));
+                                    return Err(#err_input_after_checksum);
                                 }
                             */
-                                let parsed_checksum: u8 = fix::FixParse::parse(field.value)?;
-                                if Wrapping(parsed_checksum) != checksum {
-                                    return Err(concat!(stringify!(#name), " checksums do not match"));
+                                let _parsed_checksum: u8 = fix::FixParse::parse(_field.value)?;
+                                if Wrapping(_parsed_checksum) != _checksum {
+                                    return Err(#err_invalid_checksum);
                                 }
 
                                 return Ok(#name {
-                                    #(
-                                        #outs6: #outs7?
-                                    ),*
+                                    #( #conses ),*
                                 });
                             },
                             _ => {},
                         }
 
-                        if input.len() <= field.length {
-                            return Err(concat!(stringify!(#name), " input ended before checksum"));
+                        if _input.len() <= _field.length {
+                            return Err(#err_input_end_before_checksum);
                         }
-                        checksum += field.checksum;
-                        input = &input[field.length..];
+                        _checksum += _field.checksum;
+                        _input = &_input[_field.length..];
                     }
                 }
             }
         };
     };
+
     tokens
 }
 
@@ -259,7 +286,7 @@ fn impl_fix_deserialize_enum(name: syn::Ident, variants: Vec<syn::Variant>) -> q
 struct FixField {
     id: u64,
     ident: syn::Ident,
-    //    ty: syn::Ty,
+    ty: syn::Ty,
 }
 
 fn find_fix_fields(fields: &[syn::Field]) -> Vec<FixField> {
@@ -274,7 +301,7 @@ fn find_fix_fields(fields: &[syn::Field]) -> Vec<FixField> {
             FixField {
                 id,
                 ident: field.ident.clone().unwrap(),
-                //            ty: field.ty.clone(),
+                ty: field.ty.clone(),
             }
         })
         .collect()
