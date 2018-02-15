@@ -1,9 +1,9 @@
-#![recursion_limit="32768"]
+#![recursion_limit = "32768"]
 
 extern crate proc_macro;
-extern crate syn;
 #[macro_use]
 extern crate quote;
+extern crate syn;
 
 use proc_macro::TokenStream;
 
@@ -37,8 +37,6 @@ pub fn fix_parse(input: TokenStream) -> TokenStream {
     }
 }
 
-
-
 fn impl_fix_serialize(ast: syn::DeriveInput) -> quote::Tokens {
     let name = &ast.ident;
     let msg_type = find_attr("msg_type", &ast.attrs);
@@ -70,37 +68,30 @@ fn impl_fix_deserialize(ast: syn::DeriveInput) -> quote::Tokens {
     match ast.body {
         syn::Body::Struct(syn::VariantData::Struct(fields)) => {
             impl_fix_deserialize_struct(ast.ident, ast.attrs, fields)
-        },
-        syn::Body::Enum(variants) => {
-            impl_fix_deserialize_enum(ast.ident, variants)
-        },
-        _ => {
-            panic!("#[derive(FixDeserialize)] is only defined for structs and enums")
-        },
+        }
+        syn::Body::Enum(variants) => impl_fix_deserialize_enum(ast.ident, variants),
+        _ => panic!("#[derive(FixDeserialize)] is only defined for structs and enums"),
     }
 }
 
 fn impl_fix_parse(ast: syn::DeriveInput) -> quote::Tokens {
     match ast.body {
-        syn::Body::Enum(variants) => {
-            impl_fix_parse_enum(ast.ident, variants)
-        },
-        _ => {
-            panic!("#[derive(FixParse)] is only defined for enums")
-        },
+        syn::Body::Enum(variants) => impl_fix_parse_enum(ast.ident, variants),
+        _ => panic!("#[derive(FixParse)] is only defined for enums"),
     }
 }
 
 fn impl_fix_parse_enum(name: syn::Ident, variants: Vec<syn::Variant>) -> quote::Tokens {
-    let pairs: Vec<_> = variants.iter().map(|variant| {
-        match variant.data {
+    let pairs: Vec<_> = variants
+        .iter()
+        .map(|variant| match variant.data {
             syn::VariantData::Unit => {
                 let attr = find_attr("fix_value", &variant.attrs);
                 (attr, variant.ident.clone())
-            },
+            }
             _ => panic!("#[derive(FixParse)] Only unit variants are supported for enums."),
-        }
-    }).collect();
+        })
+        .collect();
 
     let names: Vec<_> = pairs.iter().map(|_| name.clone()).collect();
     let values: Vec<_> = pairs.iter().map(|p| p.0.as_bytes()).collect();
@@ -127,7 +118,11 @@ fn impl_fix_parse_enum(name: syn::Ident, variants: Vec<syn::Variant>) -> quote::
     tokens
 }
 
-fn impl_fix_deserialize_struct(name: syn::Ident, attrs: Vec<syn::Attribute>, fields: Vec<syn::Field>) -> quote::Tokens {
+fn impl_fix_deserialize_struct(
+    name: syn::Ident,
+    attrs: Vec<syn::Attribute>,
+    fields: Vec<syn::Field>,
+) -> quote::Tokens {
     const CHECKSUM_ID: u64 = 10;
 
     let msg_type = find_attr("msg_type", &attrs);
@@ -139,7 +134,15 @@ fn impl_fix_deserialize_struct(name: syn::Ident, attrs: Vec<syn::Attribute>, fie
     let outs: Vec<_> = fields.iter().map(|f| &f.ident).collect();
     let names: Vec<_> = fields.iter().map(|_| name.to_string()).collect();
 
-    let (outs1, outs2, outs3, outs4, outs5, outs6, outs7) = (outs.clone(), outs.clone(), outs.clone(), outs.clone(), outs.clone(), outs.clone(), outs.clone());
+    let (outs1, outs2, outs3, outs4, outs5, outs6, outs7) = (
+        outs.clone(),
+        outs.clone(),
+        outs.clone(),
+        outs.clone(),
+        outs.clone(),
+        outs.clone(),
+        outs.clone(),
+    );
     let (names1, names2) = (names.clone(), names.clone());
 
     let dummy_const = syn::Ident::new(format!("_IMPL_FIX_DESERIALIZE_FOR_{}", name));
@@ -209,8 +212,9 @@ fn impl_fix_deserialize_struct(name: syn::Ident, attrs: Vec<syn::Attribute>, fie
 }
 
 fn impl_fix_deserialize_enum(name: syn::Ident, variants: Vec<syn::Variant>) -> quote::Tokens {
-    let pairs: Vec<_> = variants.iter().map(|variant| {
-        match variant.data {
+    let pairs: Vec<_> = variants
+        .iter()
+        .map(|variant| match variant.data {
             syn::VariantData::Tuple(ref fields) if fields.len() == 1 => {
                 let field = &fields[0];
                 match field.ty {
@@ -220,10 +224,10 @@ fn impl_fix_deserialize_enum(name: syn::Ident, variants: Vec<syn::Variant>) -> q
                     }
                     _ => panic!("Only paths are supported."),
                 }
-            },
+            }
             _ => panic!("Only one-field tuple variants are supported for enums."),
-        }
-    }).collect();
+        })
+        .collect();
 
     let names: Vec<_> = pairs.iter().map(|_| name.clone()).collect();
     let cases: Vec<_> = pairs.iter().map(|p| p.0.clone()).collect();
@@ -255,22 +259,25 @@ fn impl_fix_deserialize_enum(name: syn::Ident, variants: Vec<syn::Variant>) -> q
 struct FixField {
     id: u64,
     ident: syn::Ident,
-//    ty: syn::Ty,
+    //    ty: syn::Ty,
 }
 
 fn find_fix_fields(fields: &[syn::Field]) -> Vec<FixField> {
-    fields.iter().map(|field| {
-        let id = find_attr("id", &field.attrs);
-        let id: u64 = match id.parse() {
-            Ok(id) => id,
-            Err(e) => panic!("Could not parse ID as u64: {} {}", id, e),
-        };
-        FixField {
-            id,
-            ident: field.ident.clone().unwrap(),
-//            ty: field.ty.clone(),
-        }
-    }).collect()
+    fields
+        .iter()
+        .map(|field| {
+            let id = find_attr("id", &field.attrs);
+            let id: u64 = match id.parse() {
+                Ok(id) => id,
+                Err(e) => panic!("Could not parse ID as u64: {} {}", id, e),
+            };
+            FixField {
+                id,
+                ident: field.ident.clone().unwrap(),
+                //            ty: field.ty.clone(),
+            }
+        })
+        .collect()
 }
 
 fn find_attr(name: &str, attrs: &[syn::Attribute]) -> String {
@@ -298,8 +305,3 @@ fn find_attr(name: &str, attrs: &[syn::Attribute]) -> String {
         None => panic!("{} not found", name),
     }
 }
-
-
-
-
-
