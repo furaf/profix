@@ -35,8 +35,10 @@ pub mod detail {
     }
 
     pub trait FixDeserializableGroup: Sized {
-        fn deserialize_group_from_fix(expected_length: usize, input: &[u8])
-            -> Result<(Vec<Self>, ParserContinuation), ParseError>;
+        fn deserialize_group_from_fix(
+            expected_length: usize,
+            input: &[u8],
+        ) -> Result<(Vec<Self>, ParserContinuation), ParseError>;
     }
 
     pub trait FixMessageType {
