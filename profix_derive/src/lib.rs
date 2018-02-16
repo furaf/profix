@@ -27,6 +27,18 @@ pub fn fix_deserialize(input: TokenStream) -> TokenStream {
     }
 }
 
+#[proc_macro_derive(FixDeserializeGroup, attributes(id))]
+pub fn fix_deserialize_group(input: TokenStream) -> TokenStream {
+    let s = input.to_string();
+    let ast = syn::parse_derive_input(&s).unwrap();
+    let gen = impl_fix_deserialize_group(ast);
+//    panic!("{}", gen);
+    match gen.parse() {
+        Ok(ts) => ts,
+        Err(e) => panic!("{:?}: {:?}", e, gen),
+    }
+}
+
 #[proc_macro_derive(FixParse, attributes(fix_value))]
 pub fn fix_parse(input: TokenStream) -> TokenStream {
     let s = input.to_string();
@@ -62,6 +74,16 @@ fn impl_fix_serialize(ast: syn::DeriveInput) -> quote::Tokens {
         }
     } else {
         panic!("#[derive(FixSerialize)] is only defined for structs")
+    }
+}
+
+
+fn impl_fix_deserialize_group(ast: syn::DeriveInput) -> quote::Tokens {
+    match ast.body {
+        syn::Body::Struct(syn::VariantData::Struct(fields)) => {
+            impl_fix_deserialize_group_struct(ast.ident, ast.attrs, fields)
+        }
+        _ => panic!("#[derive(FixDeserializeGroup)] is only defined for structs"),
     }
 }
 
@@ -119,18 +141,13 @@ fn impl_fix_parse_enum(name: syn::Ident, variants: Vec<syn::Variant>) -> quote::
     tokens
 }
 
-fn impl_fix_deserialize_struct(
-    name: syn::Ident,
-    attrs: Vec<syn::Attribute>,
-    fields: Vec<syn::Field>,
-) -> quote::Tokens {
-    const CHECKSUM_ID: u64 = 10;
+struct ParserInternals {
+    intros: Vec<quote::Tokens>,
+    parses: Vec<quote::Tokens>,
+    conses: Vec<quote::Tokens>,
+}
 
-    let msg_type = find_attr("msg_type", &attrs);
-    let msg_type_bytes = msg_type.as_bytes();
-
-    let fields = find_fix_fields(&fields);
-
+fn generate_parser_internals(name: &syn::Ident, fields: &Vec<FixField>) -> ParserInternals {
     let mut intros = vec![];
     let mut parses = vec![];
     let mut conses = vec![];
@@ -140,26 +157,41 @@ fn impl_fix_deserialize_struct(
         let id = field.id;
         let err_multiple = format!("{} found multiple {}", name, out);
         match field.ty{
-            syn::Ty::Path(_, ref path) if path.segments.last().unwrap().ident == "Option" => {
+            syn::Ty::Path(_, ref path) if path.segments.last().unwrap().ident == "Vec" => {
+                let err_input_end_before_checksum = format!("{} input ended before checksum", name);
                 intros.push(quote! {
                     let mut #out = None;
                 });
                 parses.push(quote! {
                     #id => {
+                        use fix::detail::FixDeserializableGroup as _FDG;
+
+                        let _len: usize = fix::FixParse::parse(_field.value)?;
+                        if _input.len() <= _field.length {
+                            return Err(#err_input_end_before_checksum);
+                        }
+                        _input = &_input[_field.length..];
+                        _checksum += _field.checksum;
+
                         if #out.is_none() {
-                            #out = Some(fix::FixParse::parse(_field.value)?);
+                            let (_vec, _cont) = _FDG::deserialize_group_from_fix(_len, _input)?;
+                            #out = Some(_vec);
+                            _checksum += _cont.checksum;
+                            _input = _cont.next_input;
+                            _field = _cont.next_field;
+                            continue;
                         } else {
                             return Err(#err_multiple);
                         }
                     },
                 });
                 conses.push(quote!{
-                    #out: #out
+                    #out: #out.unwrap_or(Vec::new())
                 });
             },
-            syn::Ty::Path(_, ref path) if path.segments.last().unwrap().ident == "Vec" => {
+            syn::Ty::Path(_, ref path) if path.segments.last().unwrap().ident == "Option" => {
                 intros.push(quote! {
-                    let mut #out = vec![];
+                    let mut #out = None;
                 });
                 parses.push(quote! {
                     #id => {
@@ -195,6 +227,101 @@ fn impl_fix_deserialize_struct(
         }
     }
 
+    ParserInternals {intros, parses, conses}
+}
+
+
+fn impl_fix_deserialize_group_struct(
+    name: syn::Ident,
+    attrs: Vec<syn::Attribute>,
+    fields: Vec<syn::Field>,
+) -> quote::Tokens {
+    let fields = find_fix_fields(&fields);
+    let ParserInternals { intros, parses, conses } = generate_parser_internals(&name, &fields);
+    let parses_head = &parses[0];
+    let parses_tail = &parses[1..];
+
+    let dummy_const = syn::Ident::new(format!("_IMPL_FIX_DESERIALIZE_GROUP_FOR_{}", name));
+
+    let err_input_end_before_checksum = format!("{} input ended before checksum", name);
+
+    let tokens = quote! {
+        #[allow(non_upper_case_globals)]
+        const #dummy_const: () = {
+            extern crate fix;
+
+            impl fix::detail::FixDeserializableGroup for #name {
+                fn deserialize_group_from_fix(_expected_length: usize, _input_arg: &[u8])
+                    -> Result<(Vec<Self>, fix::detail::ParserContinuation), fix::ParseError>
+                {
+                    let mut _input = _input_arg;
+                    let mut _checksum = ::std::num::Wrapping(0u8);
+                    let mut _out = Vec::new();
+                    _out.reserve(_expected_length);
+
+                    let mut _field = fix::detail::parse_fix_field(_input)?;
+                    loop {
+                        #( #intros )*
+
+                        match _field.id {
+                            #parses_head
+                            _ => {
+                                let cont = fix::detail::ParserContinuation {
+                                    checksum: _checksum,
+                                    next_input: _input,
+                                    next_field: _field,
+                                };
+                                return Ok((_out, cont));
+                            }
+                        }
+
+                        if _input.len() <= _field.length {
+                            return Err(#err_input_end_before_checksum);
+                        }
+                        _input = &_input[_field.length..];
+                        _checksum += _field.checksum;
+                        _field = fix::detail::parse_fix_field(_input)?;
+
+                        loop {
+                            match _field.id {
+                                #( #parses_tail )*
+                                _ => break
+                            }
+
+                            if _input.len() <= _field.length {
+                                return Err(#err_input_end_before_checksum);
+                            }
+                            _input = &_input[_field.length..];
+                            _checksum += _field.checksum;
+                            _field = fix::detail::parse_fix_field(_input)?;
+                        }
+
+                        _out.push(#name {
+                            #( #conses ),*
+                        });
+                    }
+                }
+            }
+        };
+    };
+
+    tokens
+}
+
+
+fn impl_fix_deserialize_struct(
+    name: syn::Ident,
+    attrs: Vec<syn::Attribute>,
+    fields: Vec<syn::Field>,
+) -> quote::Tokens {
+    const CHECKSUM_ID: u64 = 10;
+
+    let msg_type = find_attr("msg_type", &attrs);
+    let msg_type_bytes = msg_type.as_bytes();
+
+    let fields = find_fix_fields(&fields);
+    let ParserInternals { intros, parses, conses } = generate_parser_internals(&name, &fields);
+
     let dummy_const = syn::Ident::new(format!("_IMPL_FIX_DESERIALIZE_FOR_{}", name));
 
     let err_invalid_checksum = format!("{} checksums do not match", name);
@@ -217,9 +344,8 @@ fn impl_fix_deserialize_struct(
 
                     let mut _input = _msg.body;
                     let mut _checksum = _msg.header_checksum;
+                    let mut _field = fix::detail::parse_fix_field(_input)?;
                     loop {
-                        let _field = fix::detail::parse_fix_field(_input)?;
-
                         match _field.id {
                             #( #parses )*
                             #CHECKSUM_ID => {
@@ -246,6 +372,7 @@ fn impl_fix_deserialize_struct(
                         }
                         _checksum += _field.checksum;
                         _input = &_input[_field.length..];
+                        _field = fix::detail::parse_fix_field(_input)?;
                     }
                 }
             }
