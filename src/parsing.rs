@@ -23,6 +23,13 @@ pub struct FixField<'a> {
     pub checksum: Wrapping<u8>,
 }
 
+#[derive(Eq, PartialEq, Debug)]
+pub struct ParserContinuation<'a> {
+    pub checksum: Wrapping<u8>,
+    pub next_input: &'a [u8],
+    pub next_field: FixField<'a>,
+}
+
 // Please only pass non-empty inputs
 pub fn parse_fix_field(input: &[u8]) -> Result<FixField, ParseError> {
     const DELIMITER: u8 = 1u8;
