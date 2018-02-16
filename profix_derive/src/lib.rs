@@ -81,7 +81,7 @@ fn impl_fix_serialize(ast: syn::DeriveInput) -> quote::Tokens {
 fn impl_fix_deserialize_group(ast: syn::DeriveInput) -> quote::Tokens {
     match ast.body {
         syn::Body::Struct(syn::VariantData::Struct(fields)) => {
-            impl_fix_deserialize_group_struct(ast.ident, ast.attrs, fields)
+            impl_fix_deserialize_group_struct(ast.ident, fields)
         }
         _ => panic!("#[derive(FixDeserializeGroup)] is only defined for structs"),
     }
@@ -233,7 +233,6 @@ fn generate_parser_internals(name: &syn::Ident, fields: &Vec<FixField>) -> Parse
 
 fn impl_fix_deserialize_group_struct(
     name: syn::Ident,
-    attrs: Vec<syn::Attribute>,
     fields: Vec<syn::Field>,
 ) -> quote::Tokens {
     let fields = find_fix_fields(&fields);
@@ -244,6 +243,26 @@ fn impl_fix_deserialize_group_struct(
     let dummy_const = syn::Ident::new(format!("_IMPL_FIX_DESERIALIZE_GROUP_FOR_{}", name));
 
     let err_input_end_before_checksum = format!("{} input ended before checksum", name);
+
+    let parse_tail_loop = if parses_tail.is_empty() {
+        quote! {}
+    } else {
+        quote! {
+            loop {
+                match _field.id {
+                    #( #parses_tail )*
+                    _ => break
+                }
+
+                if _input.len() <= _field.length {
+                    return Err(#err_input_end_before_checksum);
+                }
+                _input = &_input[_field.length..];
+                _checksum += _field.checksum;
+                _field = fix::detail::parse_fix_field(_input)?;
+            }
+        }
+    };
 
     let tokens = quote! {
         #[allow(non_upper_case_globals)]
@@ -282,19 +301,7 @@ fn impl_fix_deserialize_group_struct(
                         _checksum += _field.checksum;
                         _field = fix::detail::parse_fix_field(_input)?;
 
-                        loop {
-                            match _field.id {
-                                #( #parses_tail )*
-                                _ => break
-                            }
-
-                            if _input.len() <= _field.length {
-                                return Err(#err_input_end_before_checksum);
-                            }
-                            _input = &_input[_field.length..];
-                            _checksum += _field.checksum;
-                            _field = fix::detail::parse_fix_field(_input)?;
-                        }
+                        #parse_tail_loop
 
                         _out.push(#name {
                             #( #conses ),*
