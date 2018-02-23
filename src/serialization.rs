@@ -10,7 +10,7 @@ use std::str;
 #[inline]
 pub fn serialize<T: FixSerializable>(t: &T) -> String {
     let body = t.serialize_body_to_fix();
-    let header = format!("8=FIX.4.2\x019={}\x01", body.len());
+    let header = format!("8=FIX.4.4\x019={}\x01", body.len());
     let chksum = checksum(header.as_bytes()) + checksum(body.as_bytes());
     format!("{}{}10={:03}\x01", header, body, chksum)
 }

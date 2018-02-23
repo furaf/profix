@@ -1,13 +1,17 @@
 #[cfg(test)]
 extern crate quickcheck;
 
+extern crate chrono;
+
 mod parsing;
 mod serialization;
+mod timestamp;
 
 pub type ParseError = &'static str;
 
 pub use serialization::serialize;
 pub use serialization::deserialize;
+pub use timestamp::Timestamp;
 
 pub trait FixParse: Sized {
     fn parse(value: &[u8]) -> Result<Self, ParseError>;
