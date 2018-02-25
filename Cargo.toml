@@ -5,6 +5,8 @@ authors = ["Aleksander Fular <ntszar@gmail.com>", "Piotr Mis <piotrekmis@gmail.c
 
 [dependencies]
 chrono = "*"
+log = "*"
+native-tls = "0.1"
 
 [dev-dependencies]
 quickcheck = "*"

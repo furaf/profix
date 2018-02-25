@@ -2,16 +2,21 @@
 extern crate quickcheck;
 
 extern crate chrono;
+extern crate native_tls;
+#[macro_use]
+extern crate log;
 
 mod parsing;
 mod serialization;
 mod timestamp;
+mod client;
 
 pub type ParseError = &'static str;
 
 pub use serialization::serialize;
 pub use serialization::deserialize;
 pub use timestamp::Timestamp;
+pub use client::FixClient;
 
 pub trait FixParse: Sized {
     fn parse(value: &[u8]) -> Result<Self, ParseError>;
@@ -19,6 +24,12 @@ pub trait FixParse: Sized {
 
 pub trait FixParseGroup: Sized {
     fn parse_group(value: &[u8]) -> Result<Vec<Self>, ParseError>;
+}
+
+pub trait FixHeader {
+    fn seq(&self) -> u64;
+    fn target(&self) -> &str;
+    fn sender(&self) -> &str;
 }
 
 pub mod detail {
