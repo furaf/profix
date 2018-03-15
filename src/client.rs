@@ -9,27 +9,29 @@ use native_tls::TlsStream;
 use detail::FixSerializable;
 use serialize;
 use FixHeader;
+use CompIds;
 
 pub struct FixClient {
     stream: TlsStream<TcpStream>,
 
     send_seq_num: u64,
     rcv_seq_num: u64,
-
-    sender_comp_id : String,
-    target_comp_id : String,
+    comp_ids : CompIds,
 }
 
 impl FixClient {
-    pub fn new(sender_comp_id : &str, target_comp_id : &str, stream: TlsStream<TcpStream>) -> FixClient {
+    pub fn new(comp_ids : CompIds, stream: TlsStream<TcpStream>) -> FixClient {
         FixClient {
             stream,
             send_seq_num: 1u64,
             rcv_seq_num: 1u64,
 
-            sender_comp_id : sender_comp_id.to_owned(),
-            target_comp_id : target_comp_id.to_owned(),
+            comp_ids,
         }
+    }
+
+    pub fn comp_ids(&self) -> &CompIds {
+        &self.comp_ids
     }
 
     pub fn get_next_send_seq(&mut self) -> u64 {
@@ -73,9 +75,9 @@ impl FixClient {
     pub fn validate_msg<T : FixHeader>(&mut self, m : &T) -> Result<(),&'static str> {
         if m.seq() != self.rcv_seq_num {
             Err("rcv seq num out of order")
-        } else if m.sender() != self.target_comp_id {
+        } else if m.sender() != self.comp_ids.target {
             Err("Sender comp id mismatch")
-        } else if m.target() != self.sender_comp_id {
+        } else if m.target() != self.comp_ids.sender {
             Err("Sender comp id mismatch")
         } else {
 

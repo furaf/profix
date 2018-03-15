@@ -6,10 +6,16 @@ extern crate native_tls;
 #[macro_use]
 extern crate log;
 
+extern crate metrics;
+extern crate exchange;
+
 mod parsing;
 mod serialization;
 mod timestamp;
 mod client;
+mod handler;
+mod factory;
+mod fix_loop;
 
 pub type ParseError = &'static str;
 
@@ -17,6 +23,9 @@ pub use serialization::serialize;
 pub use serialization::deserialize;
 pub use timestamp::Timestamp;
 pub use client::FixClient;
+pub use handler::FixHandler;
+pub use factory::{FixFactory, CompIds};
+pub use fix_loop::fix_loop;
 
 pub trait FixParse: Sized {
     fn parse(value: &[u8]) -> Result<Self, ParseError>;

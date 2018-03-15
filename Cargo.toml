@@ -8,5 +8,8 @@ chrono = "*"
 log = "*"
 native-tls = "0.1"
 
+metrics = {path = "../metrics"}
+exchange = {path = "../exchange"}
+
 [dev-dependencies]
 quickcheck = "*"
