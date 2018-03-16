@@ -42,9 +42,7 @@ pub struct CompIds {
     pub target : String,
 }
 
-pub struct FixFactory<Logon : FixSerializable + Debug, Handler> {
-    pub logon_factory : fn(&mut FixClient) -> Logon,
-    pub connection_factory : fn() -> Result<TlsStream<TcpStream>, ConnectionFailure>,
-
-    pub handler_factory : fn(perf_sneder : Sender<PerfMetric>) -> Handler,
+pub trait FixFactory<Handler> {
+    fn connection_factory(&self) -> Result<FixClient, ConnectionFailure>;
+    fn handler_factory(&self, perf_sneder : Sender<PerfMetric>) -> Handler;
 }

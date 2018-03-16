@@ -23,8 +23,8 @@ pub use serialization::serialize;
 pub use serialization::deserialize;
 pub use timestamp::Timestamp;
 pub use client::FixClient;
-pub use handler::FixHandler;
-pub use factory::{FixFactory, CompIds};
+pub use handler::{FixHandler, HandleErr};
+pub use factory::{FixFactory, CompIds, ConnectionFailure};
 pub use fix_loop::fix_loop;
 
 pub trait FixParse: Sized {

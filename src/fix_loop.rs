@@ -16,15 +16,15 @@ use deserialize;
 use detail::{FixSerializable, FixDeserializable};
 use CompIds;
 
-pub fn fix_loop<Logon, Sess, App, H>(fix_factory : FixFactory<Logon, H>, comp_ids : CompIds, perf_sender : Sender<PerfMetric>, action_rx : Receiver<Action>)
-    where Logon : FixSerializable + Debug,
-          Sess : FixDeserializable,
+pub fn fix_loop<Factory, Sess, App, H>(fix_factory : Factory, perf_sender : Sender<PerfMetric>, action_rx : Receiver<Action>)
+    where Sess : FixDeserializable,
           App : FixDeserializable,
-          H : FixHandler<Sess, App>
+          H : FixHandler<Sess, App>,
+          Factory : FixFactory<H>
 {
     loop {
         info!("initiating connection to gdax fix");
-        let stream = match (fix_factory.connection_factory)() {
+        let mut client = match fix_factory.connection_factory() {
             Ok(stream) => {
                 info!("connected to gdax!");
                 stream
@@ -37,15 +37,15 @@ pub fn fix_loop<Logon, Sess, App, H>(fix_factory : FixFactory<Logon, H>, comp_id
             }
         };
 
-        let mut client = FixClient::new(comp_ids.clone(), stream);
-        let mut handler = (fix_factory.handler_factory)(perf_sender.clone());
-        let logon = (fix_factory.logon_factory)(&mut client);
-        client.send(&logon);
+        let mut handler = fix_factory.handler_factory(perf_sender.clone());
+//        let logon = (fix_factory.logon_factory)(&mut client);
+  //      client.send(&logon);
 
         let mut resp_buffer = [0; 1000];
         loop {
             match client.poll(&mut resp_buffer) {
                 Ok(size) => {
+                    info!("got size of {:?}", size);
                     FixClient::log_rcv(&resp_buffer, size);
                     match deserialize::<Sess>(&resp_buffer) {
                         Ok(resp) => {
@@ -90,6 +90,8 @@ pub fn fix_loop<Logon, Sess, App, H>(fix_factory : FixFactory<Logon, H>, comp_id
                     handler.handle_action(&mut client, action);
                 }
             }
+
+            handler.poll(&mut client);
 
             sleep(Duration::new(0, 0));
         }

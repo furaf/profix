@@ -1,13 +1,20 @@
-use FixParse;
-use ParseError;
-
-use chrono::NaiveDateTime;
-
 use std::fmt;
 use std::str;
 
+use chrono::NaiveDateTime;
+use chrono::prelude::Local;
+
+use FixParse;
+use ParseError;
+
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Timestamp(pub NaiveDateTime);
+
+impl Timestamp {
+    pub fn now() -> Timestamp {
+        Timestamp(Local::now().naive_utc())
+    }
+}
 
 impl FixParse for Timestamp {
     fn parse(value: &[u8]) -> Result<Self, ParseError> {
@@ -21,6 +28,7 @@ impl FixParse for Timestamp {
             Err(_) => Err("Could not parse timestamp (format: %Y%m%d-%H:%M:%S%.f)"),
         }
     }
+
 }
 
 impl fmt::Display for Timestamp {

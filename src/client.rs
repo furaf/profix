@@ -19,6 +19,13 @@ pub struct FixClient {
     comp_ids : CompIds,
 }
 
+#[derive(Debug)]
+pub enum MessageValidationErr {
+    SeqNumOutOfOrder,
+    SenderMismatch(String),
+    TargetMismatch(String),
+}
+
 impl FixClient {
     pub fn new(comp_ids : CompIds, stream: TlsStream<TcpStream>) -> FixClient {
         FixClient {
@@ -72,15 +79,14 @@ impl FixClient {
         }
     }
 
-    pub fn validate_msg<T : FixHeader>(&mut self, m : &T) -> Result<(),&'static str> {
+    pub fn validate_msg<T : FixHeader>(&mut self, m : &T) -> Result<(),MessageValidationErr> {
         if m.seq() != self.rcv_seq_num {
-            Err("rcv seq num out of order")
+            Err(MessageValidationErr::SeqNumOutOfOrder)
         } else if m.sender() != self.comp_ids.target {
-            Err("Sender comp id mismatch")
+            Err(MessageValidationErr::SenderMismatch(format!("expected {} got {}", self.comp_ids.target, m.sender())))
         } else if m.target() != self.comp_ids.sender {
-            Err("Sender comp id mismatch")
+            Err(MessageValidationErr::TargetMismatch(format!("expected {} got {}", self.comp_ids.sender, m.target())))
         } else {
-
             self.rcv_seq_num += 1;
             Ok(())
         }

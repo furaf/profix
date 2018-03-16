@@ -6,7 +6,7 @@ authors = ["Aleksander Fular <ntszar@gmail.com>", "Piotr Mis <piotrekmis@gmail.c
 [dependencies]
 chrono = "*"
 log = "*"
-native-tls = "0.1"
+native-tls = { git = "https://github.com/scottschroeder/rust-native-tls", branch = "noverify" }
 
 metrics = {path = "../metrics"}
 exchange = {path = "../exchange"}
