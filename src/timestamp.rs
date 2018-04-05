@@ -28,7 +28,6 @@ impl FixParse for Timestamp {
             Err(_) => Err("Could not parse timestamp (format: %Y%m%d-%H:%M:%S%.f)"),
         }
     }
-
 }
 
 impl fmt::Display for Timestamp {

@@ -38,11 +38,11 @@ impl From<std::io::Error> for ConnectionFailure {
 
 #[derive(Clone)]
 pub struct CompIds {
-    pub sender : String,
-    pub target : String,
+    pub sender: String,
+    pub target: String,
 }
 
 pub trait FixFactory<Handler> {
     fn connection_factory(&self) -> Result<FixClient, ConnectionFailure>;
-    fn handler_factory(&self, perf_sneder : Sender<PerfMetric>) -> Handler;
+    fn handler_factory(&self, perf_sneder: Sender<PerfMetric>) -> Handler;
 }

@@ -1,7 +1,7 @@
 use std::time::Duration;
 use std::thread::sleep;
 use std::fmt::Debug;
-use std::sync::mpsc::{Sender,Receiver};
+use std::sync::mpsc::{Receiver, Sender};
 use std::str;
 use std;
 
@@ -13,14 +13,18 @@ use FixFactory;
 use FixClient;
 use FixHandler;
 use deserialize;
-use detail::{FixSerializable, FixDeserializable};
+use detail::{FixDeserializable, FixSerializable};
 use CompIds;
 
-pub fn fix_loop<Factory, Sess, App, H>(fix_factory : Factory, perf_sender : Sender<PerfMetric>, action_rx : Receiver<Action>)
-    where Sess : FixDeserializable,
-          App : FixDeserializable,
-          H : FixHandler<Sess, App>,
-          Factory : FixFactory<H>
+pub fn fix_loop<Factory, Sess, App, H>(
+    fix_factory: Factory,
+    perf_sender: Sender<PerfMetric>,
+    action_rx: Receiver<Action>,
+) where
+    Sess: FixDeserializable,
+    App: FixDeserializable,
+    H: FixHandler<Sess, App>,
+    Factory: FixFactory<H>,
 {
     loop {
         info!("initiating connection to gdax fix");
@@ -38,8 +42,8 @@ pub fn fix_loop<Factory, Sess, App, H>(fix_factory : Factory, perf_sender : Send
         };
 
         let mut handler = fix_factory.handler_factory(perf_sender.clone());
-//        let logon = (fix_factory.logon_factory)(&mut client);
-  //      client.send(&logon);
+        //        let logon = (fix_factory.logon_factory)(&mut client);
+        //      client.send(&logon);
 
         let mut resp_buffer = [0; 1000];
         loop {
@@ -60,7 +64,10 @@ pub fn fix_loop<Factory, Sess, App, H>(fix_factory : Factory, perf_sender : Send
                     match deserialize::<App>(&resp_buffer) {
                         Ok(msg) => {
                             if let Err(_) = handler.handle_app(&mut client, msg) {
-                                error!("something went wrong while handling app message: {:?}", str::from_utf8(&resp_buffer) );
+                                error!(
+                                    "something went wrong while handling app message: {:?}",
+                                    str::from_utf8(&resp_buffer)
+                                );
                                 break;
                             }
                             continue;
@@ -69,7 +76,6 @@ pub fn fix_loop<Factory, Sess, App, H>(fix_factory : Factory, perf_sender : Send
                             println!("failed to derialize :( {}", err);
                         }
                     }
-
                 }
                 Err(err) => {
                     match err.kind() {

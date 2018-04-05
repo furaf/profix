@@ -16,7 +16,7 @@ pub struct FixClient {
 
     send_seq_num: u64,
     rcv_seq_num: u64,
-    comp_ids : CompIds,
+    comp_ids: CompIds,
 }
 
 #[derive(Debug)]
@@ -27,7 +27,7 @@ pub enum MessageValidationErr {
 }
 
 impl FixClient {
-    pub fn new(comp_ids : CompIds, stream: TlsStream<TcpStream>) -> FixClient {
+    pub fn new(comp_ids: CompIds, stream: TlsStream<TcpStream>) -> FixClient {
         FixClient {
             stream,
             send_seq_num: 1u64,
@@ -65,12 +65,12 @@ impl FixClient {
         self.stream.read(&mut buf)
     }
 
-    pub fn log_send(serialized : &str) {
+    pub fn log_send(serialized: &str) {
         println!(">> {}", serialized);
         info!(">> {}", serialized);
     }
 
-    pub fn log_rcv(buff : &[u8], size : usize) {
+    pub fn log_rcv(buff: &[u8], size: usize) {
         if let Ok(as_str) = std::str::from_utf8(buff) {
             println!("<< {}", &as_str[0..size]);
             info!("<< {}", &as_str[0..size]);
@@ -79,13 +79,21 @@ impl FixClient {
         }
     }
 
-    pub fn validate_msg<T : FixHeader>(&mut self, m : &T) -> Result<(),MessageValidationErr> {
+    pub fn validate_msg<T: FixHeader>(&mut self, m: &T) -> Result<(), MessageValidationErr> {
         if m.seq() != self.rcv_seq_num {
             Err(MessageValidationErr::SeqNumOutOfOrder)
         } else if m.sender() != self.comp_ids.target {
-            Err(MessageValidationErr::SenderMismatch(format!("expected {} got {}", self.comp_ids.target, m.sender())))
+            Err(MessageValidationErr::SenderMismatch(format!(
+                "expected {} got {}",
+                self.comp_ids.target,
+                m.sender()
+            )))
         } else if m.target() != self.comp_ids.sender {
-            Err(MessageValidationErr::TargetMismatch(format!("expected {} got {}", self.comp_ids.sender, m.target())))
+            Err(MessageValidationErr::TargetMismatch(format!(
+                "expected {} got {}",
+                self.comp_ids.sender,
+                m.target()
+            )))
         } else {
             self.rcv_seq_num += 1;
             Ok(())

@@ -2,12 +2,12 @@
 extern crate quickcheck;
 
 extern crate chrono;
-extern crate native_tls;
 #[macro_use]
 extern crate log;
+extern crate native_tls;
 
-extern crate metrics;
 extern crate exchange;
+extern crate metrics;
 
 mod parsing;
 mod serialization;
@@ -24,7 +24,7 @@ pub use serialization::deserialize;
 pub use timestamp::Timestamp;
 pub use client::FixClient;
 pub use handler::{FixHandler, HandleErr};
-pub use factory::{FixFactory, CompIds, ConnectionFailure};
+pub use factory::{CompIds, ConnectionFailure, FixFactory};
 pub use fix_loop::fix_loop;
 
 pub trait FixParse: Sized {
