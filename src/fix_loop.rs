@@ -51,7 +51,7 @@ pub fn fix_loop<Factory, Sess, App, H>(
         //      client.send(&logon);
 
         loop {
-            let mut resp_buffer_all = [0; 1000];
+            let mut resp_buffer_all = [0; 20000];
             let b = "\x0110=".as_bytes();
             match client.poll(&mut resp_buffer_all) {
                 Ok(size) => {
