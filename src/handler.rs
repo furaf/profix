@@ -20,7 +20,7 @@ impl From<MessageValidationErr> for HandleErr {
 
 pub trait FixHandler<SessionMsg: FixDeserializable, AppMsg: FixDeserializable> {
     fn handle_session(&mut self, client: &mut FixClient, msg: SessionMsg) -> Result<(), HandleErr>;
-    fn handle_app(&mut self, client: &mut FixClient, msg: AppMsg) -> Result<(), ()>;
+    fn handle_app(&mut self, client: &mut FixClient, msg: AppMsg) -> Result<(), HandleErr>;
 
     fn handle_action(&mut self, client: &mut FixClient, action: Action);
 
