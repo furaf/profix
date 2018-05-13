@@ -55,7 +55,8 @@ pub fn fix_loop<Factory, Sess, App, H>(
             let b = "\x0110=".as_bytes();
             match client.poll(&mut resp_buffer_all) {
                 Ok(size) => {
-                    info!("got size of {:?}", size);
+                    let as_vec = resp_buffer_all.clone().to_vec();
+                    info!("got size of {:?} buffer now is: {}", size, unsafe { String::from_utf8_unchecked(as_vec) });
 
                     let mut slice_begin = 0;
                     while let Some(pos) = find_subsequence(&resp_buffer_all[slice_begin..], "\x0110=".as_bytes()) {
@@ -87,7 +88,7 @@ pub fn fix_loop<Factory, Sess, App, H>(
                                 continue;
                             }
                             Err(err) => {
-                                println!("failed to derialize :( {}", err);
+                                error!("failed to derialize :( {}", err);
                             }
                         }
 
