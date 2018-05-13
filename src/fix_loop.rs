@@ -16,6 +16,11 @@ use deserialize;
 use detail::{FixDeserializable, FixSerializable};
 use CompIds;
 
+fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    haystack.windows(needle.len()).position(|window| window == needle)
+}
+
+
 pub fn fix_loop<Factory, Sess, App, H>(
     fix_factory: Factory,
     perf_sender: Sender<PerfMetric>,
@@ -45,35 +50,49 @@ pub fn fix_loop<Factory, Sess, App, H>(
         //        let logon = (fix_factory.logon_factory)(&mut client);
         //      client.send(&logon);
 
-        let mut resp_buffer = [0; 1000];
         loop {
-            match client.poll(&mut resp_buffer) {
+            let mut resp_buffer_all = [0; 1000];
+            let b = "\x0110=".as_bytes();
+            match client.poll(&mut resp_buffer_all) {
                 Ok(size) => {
                     info!("got size of {:?}", size);
-                    FixClient::log_rcv(&resp_buffer, size);
-                    match deserialize::<Sess>(&resp_buffer) {
-                        Ok(resp) => {
-                            if let Err(err) = handler.handle_session(&mut client, resp) {
-                                error!("something went wrong while handling sess message: {:?} msg: {:?}", err, str::from_utf8(&resp_buffer) );
-                                break;
+
+                    let mut slice_begin = 0;
+                    while let Some(pos) = find_subsequence(&resp_buffer_all[slice_begin..], "\x0110=".as_bytes()) {
+                        let slice_end = slice_begin + pos + 8;
+                        let resp_buffer = &resp_buffer_all[slice_begin..slice_end];
+                        slice_begin = slice_end;
+
+
+                        FixClient::log_rcv(&resp_buffer, size);
+                        match deserialize::<Sess>(&resp_buffer) {
+                            Ok(resp) => {
+                                if let Err(err) = handler.handle_session(&mut client, resp) {
+                                    error!("something went wrong while handling sess message: {:?} msg: {:?}", err, str::from_utf8(&resp_buffer));
+                                    break;
+                                }
+                                continue;
                             }
-                            continue;
+                            Err(_) => {}
                         }
-                        Err(_) => {}
-                    }
-                    match deserialize::<App>(&resp_buffer) {
-                        Ok(msg) => {
-                            if let Err(_) = handler.handle_app(&mut client, msg) {
-                                error!(
-                                    "something went wrong while handling app message: {:?}",
-                                    str::from_utf8(&resp_buffer)
-                                );
-                                break;
+                        match deserialize::<App>(&resp_buffer) {
+                            Ok(msg) => {
+                                if let Err(_) = handler.handle_app(&mut client, msg) {
+                                    error!(
+                                        "something went wrong while handling app message: {:?}",
+                                        str::from_utf8(&resp_buffer)
+                                    );
+                                    break;
+                                }
+                                continue;
                             }
-                            continue;
+                            Err(err) => {
+                                println!("failed to derialize :( {}", err);
+                            }
                         }
-                        Err(err) => {
-                            println!("failed to derialize :( {}", err);
+
+                        if slice_begin >= size {
+                            break;
                         }
                     }
                 }
