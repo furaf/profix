@@ -51,23 +51,26 @@ pub fn fix_loop<Factory, Sess, App, H>(
         //      client.send(&logon);
 
         loop {
+            let mut hard_break = false;
+
+
             let mut resp_buffer_all = [0; 20000];
-            let b = "\x0110=".as_bytes();
+
             match client.poll(&mut resp_buffer_all) {
                 Ok(size) => {
-                    let as_vec = resp_buffer_all.clone().to_vec();
-                    info!("got size of {:?} buffer now is: {}", size, unsafe { String::from_utf8_unchecked(as_vec) });
-
                     let mut slice_begin = 0;
                     while let Some(pos) = find_subsequence(&resp_buffer_all[slice_begin..], "\x0110=".as_bytes()) {
                         let slice_end = slice_begin + pos + 8;
                         let resp_buffer = &resp_buffer_all[slice_begin..slice_end];
                         slice_begin = slice_end;
 
+                        let as_vec = resp_buffer.to_vec();
+                        println!("g2ot size of {:?} buffer now is: {}", size, unsafe { String::from_utf8_unchecked(as_vec) });
 
                         FixClient::log_rcv(&resp_buffer, slice_end);
                         match deserialize::<Sess>(&resp_buffer) {
                             Ok(resp) => {
+
                                 if let Err(err) = handler.handle_session(&mut client, resp) {
                                     error!("something went wrong while handling sess message: {:?} msg: {:?}", err, str::from_utf8(&resp_buffer));
                                     break;
@@ -83,6 +86,7 @@ pub fn fix_loop<Factory, Sess, App, H>(
                                         "something went wrong while handling app message: {:?}",
                                         str::from_utf8(&resp_buffer)
                                     );
+                                    hard_break = true;
                                     break;
                                 }
                                 continue;
@@ -110,6 +114,10 @@ pub fn fix_loop<Factory, Sess, App, H>(
                 }
             };
 
+            if hard_break {
+                break;
+            }
+
             if handler.is_logged() {
                 if let Ok(action) = action_rx.try_recv() {
                     info!("got something to do. {:?}", action);
@@ -121,7 +129,7 @@ pub fn fix_loop<Factory, Sess, App, H>(
 
             sleep(Duration::new(0, 0));
         }
-
+        ::std::process::exit(3);
         sleep(Duration::from_secs(10));
     }
 }

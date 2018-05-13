@@ -72,8 +72,8 @@ impl FixClient {
 
     pub fn log_rcv(buff: &[u8], size: usize) {
         if let Ok(as_str) = std::str::from_utf8(buff) {
-            println!("<< {}", &as_str[0..size]);
-            info!("<< {}", &as_str[0..size]);
+            println!("<< {}", &as_str);
+            info!("<< {}", &as_str);
         } else {
             error!("couldnt view rcv as utf8?");
         }
