@@ -64,7 +64,7 @@ pub fn fix_loop<Factory, Sess, App, H>(
                         slice_begin = slice_end;
 
 
-                        FixClient::log_rcv(&resp_buffer, size);
+                        FixClient::log_rcv(&resp_buffer, slice_end);
                         match deserialize::<Sess>(&resp_buffer) {
                             Ok(resp) => {
                                 if let Err(err) = handler.handle_session(&mut client, resp) {
