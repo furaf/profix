@@ -127,7 +127,7 @@ pub fn fix_loop<Factory, Sess, App, H>(
 
             handler.poll(&mut client);
 
-            sleep(Duration::new(0, 0));
+            sleep(Duration::new(0, 1000));
         }
         ::std::process::exit(3);
         sleep(Duration::from_secs(10));
