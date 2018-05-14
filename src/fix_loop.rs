@@ -81,10 +81,10 @@ pub fn fix_loop<Factory, Sess, App, H>(
                         }
                         match deserialize::<App>(&resp_buffer) {
                             Ok(msg) => {
-                                if let Err(_) = handler.handle_app(&mut client, msg) {
+                                if let Err(err) = handler.handle_app(&mut client, msg) {
                                     error!(
-                                        "something went wrong while handling app message: {:?}",
-                                        str::from_utf8(&resp_buffer)
+                                        "something went wrong while handling app message: {:?} err: {:?}",
+                                        str::from_utf8(&resp_buffer), err
                                     );
                                     hard_break = true;
                                     break;
@@ -129,7 +129,6 @@ pub fn fix_loop<Factory, Sess, App, H>(
 
             sleep(Duration::new(0, 1000));
         }
-        ::std::process::exit(3);
         sleep(Duration::from_secs(10));
     }
 }
