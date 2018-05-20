@@ -73,6 +73,7 @@ pub fn fix_loop<Factory, Sess, App, H>(
 
                                 if let Err(err) = handler.handle_session(&mut client, resp) {
                                     error!("something went wrong while handling sess message: {:?} msg: {:?}", err, str::from_utf8(&resp_buffer));
+                                    hard_break = true;
                                     break;
                                 }
                                 continue;
