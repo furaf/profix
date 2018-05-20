@@ -93,6 +93,9 @@ pub fn fix_loop<Factory, Sess, App, H>(
                             }
                             Err(err) => {
                                 error!("failed to derialize :( {}", err);
+
+                                hard_break = true;
+                                break;
                             }
                         }
 
