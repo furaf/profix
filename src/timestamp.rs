@@ -1,8 +1,8 @@
 use std::fmt;
 use std::str;
 
-use chrono::NaiveDateTime;
 use chrono::prelude::Local;
+use chrono::NaiveDateTime;
 
 use FixParse;
 use ParseError;

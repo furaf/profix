@@ -1,25 +1,26 @@
-use std::time::Duration;
-use std::thread::sleep;
-use std::fmt::Debug;
-use std::sync::mpsc::{Receiver, Sender};
-use std::str;
 use std;
+use std::fmt::Debug;
+use std::str;
+use std::sync::mpsc::{Receiver, Sender};
+use std::thread::sleep;
+use std::time::Duration;
 
 use metrics::PerfMetric;
 
 use exchange::Action;
 
-use FixFactory;
-use FixClient;
-use FixHandler;
 use deserialize;
 use detail::{FixDeserializable, FixSerializable};
 use CompIds;
+use FixClient;
+use FixFactory;
+use FixHandler;
 
 fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-    haystack.windows(needle.len()).position(|window| window == needle)
+    haystack
+        .windows(needle.len())
+        .position(|window| window == needle)
 }
-
 
 pub fn fix_loop<Factory, Sess, App, H>(
     fix_factory: Factory,
@@ -53,24 +54,26 @@ pub fn fix_loop<Factory, Sess, App, H>(
         loop {
             let mut hard_break = false;
 
-
             let mut resp_buffer_all = [0; 20000];
 
             match client.poll(&mut resp_buffer_all) {
                 Ok(size) => {
                     let mut slice_begin = 0;
-                    while let Some(pos) = find_subsequence(&resp_buffer_all[slice_begin..], "\x0110=".as_bytes()) {
+                    while let Some(pos) =
+                        find_subsequence(&resp_buffer_all[slice_begin..], "\x0110=".as_bytes())
+                    {
                         let slice_end = slice_begin + pos + 8;
                         let resp_buffer = &resp_buffer_all[slice_begin..slice_end];
                         slice_begin = slice_end;
 
                         let as_vec = resp_buffer.to_vec();
-                        println!("g2ot size of {:?} buffer now is: {}", size, unsafe { String::from_utf8_unchecked(as_vec) });
+                        println!("g2ot size of {:?} buffer now is: {}", size, unsafe {
+                            String::from_utf8_unchecked(as_vec)
+                        });
 
                         FixClient::log_rcv(&resp_buffer, slice_end);
                         match deserialize::<Sess>(&resp_buffer) {
                             Ok(resp) => {
-
                                 if let Err(err) = handler.handle_session(&mut client, resp) {
                                     error!("something went wrong while handling sess message: {:?} msg: {:?}", err, str::from_utf8(&resp_buffer));
                                     hard_break = true;

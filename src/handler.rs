@@ -2,9 +2,9 @@ use std::convert::From;
 
 use exchange::Action;
 
+use client::MessageValidationErr;
 use detail::FixDeserializable;
 use FixClient;
-use client::MessageValidationErr;
 
 #[derive(Debug)]
 pub enum HandleErr {

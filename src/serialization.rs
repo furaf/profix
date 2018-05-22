@@ -1,6 +1,6 @@
-use super::detail::FixSerializable;
-use super::detail::FixDeserializable;
 use super::detail::parse_fix_message;
+use super::detail::FixDeserializable;
+use super::detail::FixSerializable;
 use super::FixParse;
 use super::ParseError;
 

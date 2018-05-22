@@ -1,8 +1,8 @@
+use super::ParseError;
 use std::num::Wrapping;
-use std::result::Result;
 use std::ops::AddAssign;
 use std::ops::MulAssign;
-use super::ParseError;
+use std::result::Result;
 
 const VERSION_ID: u64 = 8u64;
 const LENGTH_ID: u64 = 9u64;
@@ -150,8 +150,8 @@ where
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use super::super::serialization::checksum;
+    use super::*;
     use quickcheck::*;
 
     pub fn to_fix(s: &str) -> Vec<u8> {

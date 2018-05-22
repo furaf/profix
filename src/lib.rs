@@ -9,23 +9,23 @@ extern crate native_tls;
 extern crate exchange;
 extern crate metrics;
 
+mod client;
+mod factory;
+mod fix_loop;
+mod handler;
 mod parsing;
 mod serialization;
 mod timestamp;
-mod client;
-mod handler;
-mod factory;
-mod fix_loop;
 
 pub type ParseError = &'static str;
 
-pub use serialization::serialize;
-pub use serialization::deserialize;
-pub use timestamp::Timestamp;
 pub use client::FixClient;
-pub use handler::{FixHandler, HandleErr};
 pub use factory::{CompIds, ConnectionFailure, FixFactory};
 pub use fix_loop::fix_loop;
+pub use handler::{FixHandler, HandleErr};
+pub use serialization::deserialize;
+pub use serialization::serialize;
+pub use timestamp::Timestamp;
 
 pub trait FixParse: Sized {
     fn parse(value: &[u8]) -> Result<Self, ParseError>;
@@ -44,11 +44,11 @@ pub trait FixHeader {
 pub mod detail {
     use super::ParseError;
 
+    pub use super::parsing::parse_fix_field;
+    pub use super::parsing::parse_fix_message;
     pub use super::parsing::FixField;
     pub use super::parsing::FixMessage;
     pub use super::parsing::ParserContinuation;
-    pub use super::parsing::parse_fix_field;
-    pub use super::parsing::parse_fix_message;
 
     pub trait FixSerializable {
         fn serialize_body_to_fix(&self) -> String;

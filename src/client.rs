@@ -1,15 +1,15 @@
-use std::net::TcpStream;
+use std;
 use std::fmt::Debug;
 use std::io::Error;
 use std::io::{Read, Write};
-use std;
+use std::net::TcpStream;
 
 use native_tls::TlsStream;
 
 use detail::FixSerializable;
 use serialize;
-use FixHeader;
 use CompIds;
+use FixHeader;
 
 pub struct FixClient {
     stream: TlsStream<TcpStream>,

@@ -1,10 +1,10 @@
+use std;
 use std::fmt::Debug;
 use std::net::TcpStream;
 use std::sync::mpsc::Sender;
-use std;
 
-use native_tls::TlsStream;
 use native_tls;
+use native_tls::TlsStream;
 
 use detail::FixSerializable;
 use FixClient;
