@@ -26,6 +26,8 @@ pub use handler::{FixHandler, HandleErr};
 pub use serialization::deserialize;
 pub use serialization::serialize;
 pub use timestamp::Timestamp;
+pub use client::TlsStreamWrapper;
+pub use client::PlainStreamWrapper;
 
 pub trait FixParse: Sized {
     fn parse(value: &[u8]) -> Result<Self, ParseError>;

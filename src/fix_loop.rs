@@ -27,8 +27,8 @@ pub fn fix_loop<Factory, Sess, App, H>(
     perf_sender: Sender<PerfMetric>,
     action_rx: Receiver<Action>,
 ) where
-    Sess: FixDeserializable,
-    App: FixDeserializable,
+    Sess: FixDeserializable + Debug,
+    App: FixDeserializable + Debug,
     H: FixHandler<Sess, App>,
     Factory: FixFactory<H>,
 {
@@ -58,6 +58,9 @@ pub fn fix_loop<Factory, Sess, App, H>(
 
             match client.poll(&mut resp_buffer_all) {
                 Ok(size) => {
+                    info!("special log.");
+                    FixClient::log_rcv(&resp_buffer_all, size);
+                    info!("end-special log.");
                     let mut slice_begin = 0;
                     while let Some(pos) =
                         find_subsequence(&resp_buffer_all[slice_begin..], "\x0110=".as_bytes())
@@ -67,13 +70,11 @@ pub fn fix_loop<Factory, Sess, App, H>(
                         slice_begin = slice_end;
 
                         let as_vec = resp_buffer.to_vec();
-                        println!("g2ot size of {:?} buffer now is: {}", size, unsafe {
-                            String::from_utf8_unchecked(as_vec)
-                        });
 
                         FixClient::log_rcv(&resp_buffer, slice_end);
                         match deserialize::<Sess>(&resp_buffer) {
                             Ok(resp) => {
+                                info!("sess << {:?}", resp);
                                 if let Err(err) = handler.handle_session(&mut client, resp) {
                                     error!("something went wrong while handling sess message: {:?} msg: {:?}", err, str::from_utf8(&resp_buffer));
                                     hard_break = true;
@@ -85,6 +86,7 @@ pub fn fix_loop<Factory, Sess, App, H>(
                         }
                         match deserialize::<App>(&resp_buffer) {
                             Ok(msg) => {
+                                info!("app << {:?}", msg);
                                 if let Err(err) = handler.handle_app(&mut client, msg) {
                                     error!(
                                         "something went wrong while handling app message: {:?} err: {:?}",
