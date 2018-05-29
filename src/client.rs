@@ -16,14 +16,12 @@ pub trait Stream {
 }
 
 pub struct PlainStreamWrapper {
-    stream : TcpStream,
+    stream: TcpStream,
 }
 
 impl PlainStreamWrapper {
-    pub fn new(stream : TcpStream) -> PlainStreamWrapper {
-        PlainStreamWrapper {
-            stream,
-        }
+    pub fn new(stream: TcpStream) -> PlainStreamWrapper {
+        PlainStreamWrapper { stream }
     }
 }
 
@@ -34,14 +32,12 @@ impl Stream for PlainStreamWrapper {
 }
 
 pub struct TlsStreamWrapper {
-    stream : TlsStream<TcpStream>,
+    stream: TlsStream<TcpStream>,
 }
 
 impl TlsStreamWrapper {
-    pub fn new(stream : TlsStream<TcpStream>) -> TlsStreamWrapper {
-        TlsStreamWrapper {
-            stream,
-        }
+    pub fn new(stream: TlsStream<TcpStream>) -> TlsStreamWrapper {
+        TlsStreamWrapper { stream }
     }
 }
 
@@ -106,13 +102,13 @@ impl FixClient {
     }
 
     pub fn log_send(serialized: &str) {
-//        println!(">> {}", serialized);
+        //        println!(">> {}", serialized);
         info!(">> {}", serialized);
     }
 
     pub fn log_rcv(buff: &[u8], size: usize) {
         if let Ok(as_str) = std::str::from_utf8(buff) {
-//            println!("<< {}", &as_str);
+            //            println!("<< {}", &as_str);
             info!("<< {}", &as_str);
         } else {
             error!("couldnt view rcv as utf8?");

@@ -20,14 +20,14 @@ mod timestamp;
 pub type ParseError = &'static str;
 
 pub use client::FixClient;
+pub use client::PlainStreamWrapper;
+pub use client::TlsStreamWrapper;
 pub use factory::{CompIds, ConnectionFailure, FixFactory};
 pub use fix_loop::fix_loop;
 pub use handler::{FixHandler, HandleErr};
 pub use serialization::deserialize;
 pub use serialization::serialize;
 pub use timestamp::Timestamp;
-pub use client::TlsStreamWrapper;
-pub use client::PlainStreamWrapper;
 
 pub trait FixParse: Sized {
     fn parse(value: &[u8]) -> Result<Self, ParseError>;
