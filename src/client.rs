@@ -12,7 +12,10 @@ use CompIds;
 use FixHeader;
 
 pub trait Stream {
-    fn tcp(&mut self) -> &mut TcpStream;
+    fn get_mut(&mut self) -> &mut TcpStream;
+
+    fn read(&mut self, buf : &mut [u8]) -> Result<usize, Error>;
+    fn write_all(&mut self, buf : &[u8]) -> Result<(), Error>;
 }
 
 pub struct PlainStreamWrapper {
@@ -26,8 +29,16 @@ impl PlainStreamWrapper {
 }
 
 impl Stream for PlainStreamWrapper {
-    fn tcp(&mut self) -> &mut TcpStream {
+    fn get_mut(&mut self) -> &mut TcpStream {
         &mut self.stream
+    }
+
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
+        self.stream.read(buf)
+    }
+
+    fn write_all(&mut self, buf: &[u8]) -> Result<(), Error> {
+        self.stream.write_all(buf)
     }
 }
 
@@ -42,13 +53,22 @@ impl TlsStreamWrapper {
 }
 
 impl Stream for TlsStreamWrapper {
-    fn tcp(&mut self) -> &mut TcpStream {
+    fn get_mut(&mut self) -> &mut TcpStream {
         self.stream.get_mut()
+    }
+
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
+        self.stream.read(buf)
+    }
+
+    fn write_all(&mut self, buf: &[u8]) -> Result<(), Error> {
+        self.stream.write_all(buf)
     }
 }
 
 pub struct FixClient {
     stream: Box<Stream>, //TlsStream<TcpStream>,
+//    stream: TlsStream<TcpStream>,
 
     send_seq_num: u64,
     rcv_seq_num: u64,
@@ -87,18 +107,18 @@ impl FixClient {
     pub fn send<Msg: FixSerializable + Debug>(&mut self, msg: &Msg) {
         let fix_msg = serialize(msg);
         Self::log_send(&fix_msg);
-        self.stream.tcp().write_all(fix_msg.as_bytes()).unwrap();
+        self.stream.write_all(fix_msg.as_bytes()).unwrap();
     }
 
     pub fn poll(&mut self, mut buf: &mut [u8]) -> Result<usize, Error> {
         {
             let mut peek_buffer = [0; 1];
-            let underlying = self.stream.tcp();
+            let underlying = self.stream.get_mut();
 
             underlying.peek(&mut peek_buffer)?;
         }
 
-        self.stream.tcp().read(&mut buf)
+        self.stream.read(&mut buf)
     }
 
     pub fn log_send(serialized: &str) {
