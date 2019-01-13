@@ -50,6 +50,17 @@ pub fn fix_parse(input: TokenStream) -> TokenStream {
     }
 }
 
+#[proc_macro_derive(FixHeader)]
+pub fn fix_header(input: TokenStream) -> TokenStream {
+    let s = input.to_string();
+    let ast = syn::parse_derive_input(&s).unwrap();
+    let gen = impl_fix_header(ast);
+    match gen.parse() {
+        Ok(ts) => ts,
+        Err(e) => panic!("{:?}: {:?}", e, gen),
+    }
+}
+
 fn impl_fix_serialize(ast: syn::DeriveInput) -> quote::Tokens {
     let name = &ast.ident;
     let msg_type = find_attr("msg_type", &ast.attrs);
@@ -139,6 +150,30 @@ fn impl_fix_parse_enum(name: syn::Ident, variants: Vec<syn::Variant>) -> quote::
         };
     };
     tokens
+}
+
+fn impl_fix_header(ast: syn::DeriveInput) -> quote::Tokens {
+    let name = &ast.ident;
+
+    let dummy_const = syn::Ident::new(format!("_IMPL_SMART_ENUM_DERIVE_FOR_{}", name));
+    quote! {
+    #[allow(non_upper_case_globals)]
+            const #dummy_const: () = {
+            impl ::fix::FixHeader for #name {
+                fn seq(&self) -> u64 {
+                    self.seq
+                }
+
+                fn sender(&self) -> &str {
+                    &self.sender
+                }
+
+                fn target(&self) -> &str {
+                    &self.target
+                }
+            }
+    };
+        }
 }
 
 struct ParserInternals {
