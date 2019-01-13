@@ -1,6 +1,6 @@
 use std::convert::From;
 
-use exchange::Action;
+use action::Action;
 
 use client::MessageValidationErr;
 use detail::FixDeserializable;

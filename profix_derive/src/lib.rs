@@ -75,8 +75,8 @@ fn impl_fix_serialize(ast: syn::DeriveInput) -> quote::Tokens {
         quote! {
             #[allow(non_upper_case_globals)]
             const #dummy_const: () = {
-                extern crate fix;
-                impl fix::detail::FixSerializable for #name {
+                extern crate profix;
+                impl profix::detail::FixSerializable for #name {
                     fn serialize_body_to_fix(&self) -> String {
                         format!(concat!("35=", #msg_type, "\x01", concat!(#(#ids, "={}\x01"),* )), #(self.#idents),*)
                     }
@@ -135,8 +135,8 @@ fn impl_fix_parse_enum(name: syn::Ident, variants: Vec<syn::Variant>) -> quote::
     let tokens = quote! {
         #[allow(non_upper_case_globals)]
         const #dummy_const: () = {
-            extern crate fix;
-            impl fix::FixParse for #name {
+            extern crate profix;
+            impl profix::FixParse for #name {
                 fn parse(value: &[u8]) -> Result<Self, fix::ParseError> {
                     #(
                         if value == #values {
@@ -159,7 +159,7 @@ fn impl_fix_header(ast: syn::DeriveInput) -> quote::Tokens {
     quote! {
     #[allow(non_upper_case_globals)]
             const #dummy_const: () = {
-            impl ::fix::FixHeader for #name {
+            impl ::profix::FixHeader for #name {
                 fn seq(&self) -> u64 {
                     self.seq
                 }
@@ -199,9 +199,9 @@ fn generate_parser_internals(name: &syn::Ident, fields: &Vec<FixField>) -> Parse
                 });
                 parses.push(quote! {
                     #id => {
-                        use fix::detail::FixDeserializableGroup as _FDG;
+                        use profix::detail::FixDeserializableGroup as _FDG;
 
-                        let _len: usize = fix::FixParse::parse(_field.value)?;
+                        let _len: usize = profix::FixParse::parse(_field.value)?;
                         if _input.len() <= _field.length {
                             return Err(#err_input_end_before_checksum);
                         }
@@ -231,7 +231,7 @@ fn generate_parser_internals(name: &syn::Ident, fields: &Vec<FixField>) -> Parse
                 parses.push(quote! {
                     #id => {
                         if #out.is_none() {
-                            #out = Some(fix::FixParse::parse(_field.value)?);
+                            #out = Some(profix::FixParse::parse(_field.value)?);
                         } else {
                             return Err(#err_multiple);
                         }
@@ -249,7 +249,7 @@ fn generate_parser_internals(name: &syn::Ident, fields: &Vec<FixField>) -> Parse
                 parses.push(quote! {
                     #id => {
                         if #out.is_err() {
-                            #out = Ok(fix::FixParse::parse(_field.value)?);
+                            #out = Ok(profix::FixParse::parse(_field.value)?);
                         } else {
                             return Err(#err_multiple);
                         }
@@ -294,7 +294,7 @@ fn impl_fix_deserialize_group_struct(
                 }
                 _input = &_input[_field.length..];
                 _checksum += _field.checksum;
-                _field = fix::detail::parse_fix_field(_input)?;
+                _field = profix::detail::parse_fix_field(_input)?;
             }
         }
     };
@@ -302,25 +302,25 @@ fn impl_fix_deserialize_group_struct(
     let tokens = quote! {
         #[allow(non_upper_case_globals)]
         const #dummy_const: () = {
-            extern crate fix;
+            extern crate profix;
 
-            impl fix::detail::FixDeserializableGroup for #name {
+            impl profix::detail::FixDeserializableGroup for #name {
                 fn deserialize_group_from_fix(_expected_length: usize, _input_arg: &[u8])
-                    -> Result<(Vec<Self>, fix::detail::ParserContinuation), fix::ParseError>
+                    -> Result<(Vec<Self>, profix::detail::ParserContinuation), fix::ParseError>
                 {
                     let mut _input = _input_arg;
                     let mut _checksum = ::std::num::Wrapping(0u8);
                     let mut _out = Vec::new();
                     _out.reserve(_expected_length);
 
-                    let mut _field = fix::detail::parse_fix_field(_input)?;
+                    let mut _field = profix::detail::parse_fix_field(_input)?;
                     loop {
                         #( #intros )*
 
                         match _field.id {
                             #parses_head
                             _ => {
-                                let cont = fix::detail::ParserContinuation {
+                                let cont = profix::detail::ParserContinuation {
                                     checksum: _checksum,
                                     next_input: _input,
                                     next_field: _field,
@@ -334,7 +334,7 @@ fn impl_fix_deserialize_group_struct(
                         }
                         _input = &_input[_field.length..];
                         _checksum += _field.checksum;
-                        _field = fix::detail::parse_fix_field(_input)?;
+                        _field = profix::detail::parse_fix_field(_input)?;
 
                         #parse_tail_loop
 
@@ -373,20 +373,20 @@ fn impl_fix_deserialize_struct(
     let tokens = quote! {
         #[allow(non_upper_case_globals)]
         const #dummy_const: () = {
-            extern crate fix;
+            extern crate profix;
             use std::num::Wrapping;
 
-            impl fix::detail::FixMessageType for #name {
+            impl profix::detail::FixMessageType for #name {
                 const MSG_TYPE: &'static [u8] = &#msg_type_bytes;
             }
 
-            impl fix::detail::FixDeserializable for #name {
-                fn deserialize_from_fix(_msg: fix::detail::FixMessage) -> Result<Self, fix::ParseError> {
+            impl profix::detail::FixDeserializable for #name {
+                fn deserialize_from_fix(_msg: profix::detail::FixMessage) -> Result<Self, fix::ParseError> {
                     #( #intros )*
 
                     let mut _input = _msg.body;
                     let mut _checksum = _msg.header_checksum;
-                    let mut _field = fix::detail::parse_fix_field(_input)?;
+                    let mut _field = profix::detail::parse_fix_field(_input)?;
                     loop {
                         match _field.id {
                             #( #parses )*
@@ -397,7 +397,7 @@ fn impl_fix_deserialize_struct(
                                     return Err(#err_input_after_checksum);
                                 }
                             */
-                                let _parsed_checksum: u8 = fix::FixParse::parse(_field.value)?;
+                                let _parsed_checksum: u8 = profix::FixParse::parse(_field.value)?;
                                 if Wrapping(_parsed_checksum) != _checksum {
                                     return Err(#err_invalid_checksum);
                                 }
@@ -414,7 +414,7 @@ fn impl_fix_deserialize_struct(
                         }
                         _checksum += _field.checksum;
                         _input = &_input[_field.length..];
-                        _field = fix::detail::parse_fix_field(_input)?;
+                        _field = profix::detail::parse_fix_field(_input)?;
                     }
                 }
             }
@@ -450,14 +450,14 @@ fn impl_fix_deserialize_enum(name: syn::Ident, variants: Vec<syn::Variant>) -> q
     let tokens = quote! {
         #[allow(non_upper_case_globals)]
         const #dummy_const: () = {
-            extern crate fix;
-            use fix::detail::FixMessageType;
+            extern crate profix;
+            use profix::detail::FixMessageType;
 
-            impl fix::detail::FixDeserializable for #name {
-                fn deserialize_from_fix(msg: fix::detail::FixMessage) -> Result<Self, fix::ParseError> {
+            impl profix::detail::FixDeserializable for #name {
+                fn deserialize_from_fix(msg: profix::detail::FixMessage) -> Result<Self, profix::ParseError> {
                     #(
                         if msg.msg_type == #tys::MSG_TYPE {
-                            return Ok(#names::#cases(fix::detail::FixDeserializable::deserialize_from_fix(msg)?));
+                            return Ok(#names::#cases(profix::detail::FixDeserializable::deserialize_from_fix(msg)?));
                         }
                     )*
 

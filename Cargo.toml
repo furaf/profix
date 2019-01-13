@@ -1,5 +1,5 @@
 [package]
-name = "fix"
+name = "profix"
 version = "0.1.0"
 authors = ["Aleksander Fular <ntszar@gmail.com>", "Piotr Mis <piotrekmis@gmail.com>"]
 
@@ -8,8 +8,7 @@ chrono = "*"
 log = "*"
 native-tls = { git = "https://github.com/scottschroeder/rust-native-tls", branch = "noverify" }
 
-metrics = {path = "../metrics"}
-exchange = {path = "../exchange"}
+profix_derive = {path = "profix_derive"}
 
 [dev-dependencies]
 quickcheck = "*"

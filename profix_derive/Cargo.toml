@@ -1,5 +1,5 @@
 [package]
-name = "fix_derive"
+name = "profix_derive"
 version = "0.1.0"
 authors = ["Aleksander Fular <ntszar@gmail.com>", "Piotr Mis <piotrekmis@gmail.com>"]
 

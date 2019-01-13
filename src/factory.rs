@@ -9,8 +9,6 @@ use native_tls::TlsStream;
 use detail::FixSerializable;
 use FixClient;
 
-use metrics::PerfMetric;
-
 #[derive(Debug)]
 pub enum ConnectionFailure {
     TlsError(native_tls::Error),
@@ -44,5 +42,5 @@ pub struct CompIds {
 
 pub trait FixFactory<Handler> {
     fn connection_factory(&self) -> Result<FixClient, ConnectionFailure>;
-    fn handler_factory(&self, perf_sneder: Sender<PerfMetric>) -> Handler;
+    fn handler_factory(&self) -> Handler;
 }

@@ -5,16 +5,13 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::thread::sleep;
 use std::time::Duration;
 
-use metrics::PerfMetric;
-
-use exchange::Action;
-
 use deserialize;
 use detail::{FixDeserializable, FixSerializable};
 use CompIds;
 use FixClient;
 use FixFactory;
 use FixHandler;
+use action::Action;
 
 fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     haystack
@@ -24,7 +21,6 @@ fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
 
 pub fn fix_loop<Factory, Sess, App, H>(
     fix_factory: Factory,
-    perf_sender: Sender<PerfMetric>,
     action_rx: Receiver<Action>,
 ) where
     Sess: FixDeserializable + Debug,
@@ -47,7 +43,7 @@ pub fn fix_loop<Factory, Sess, App, H>(
             }
         };
 
-        let mut handler = fix_factory.handler_factory(perf_sender.clone());
+        let mut handler = fix_factory.handler_factory();
         //        let logon = (fix_factory.logon_factory)(&mut client);
         //      client.send(&logon);
 
@@ -58,9 +54,7 @@ pub fn fix_loop<Factory, Sess, App, H>(
 
             match client.poll(&mut resp_buffer_all) {
                 Ok(size) => {
-                    info!("special log.");
                     FixClient::log_rcv(&resp_buffer_all, size);
-                    info!("end-special log.");
                     let mut slice_begin = 0;
                     while let Some(pos) =
                         find_subsequence(&resp_buffer_all[slice_begin..], "\x0110=".as_bytes())

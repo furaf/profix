@@ -6,8 +6,11 @@ extern crate chrono;
 extern crate log;
 extern crate native_tls;
 
-extern crate exchange;
-extern crate metrics;
+#[macro_use]
+#[allow(unused_imports)]
+extern crate profix_derive;
+#[doc(hidden)]
+pub use self::profix_derive::*;
 
 mod client;
 mod factory;
@@ -16,6 +19,7 @@ mod handler;
 mod parsing;
 mod serialization;
 mod timestamp;
+mod action;
 
 pub type ParseError = &'static str;
 

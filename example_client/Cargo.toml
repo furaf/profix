@@ -1,0 +1,7 @@
+[package]
+name = "example_client"
+version = "0.1.0"
+authors = ["fulara <ntszar@gmail.com>"]
+
+[dependencies]
+profix = {path = ".." }
