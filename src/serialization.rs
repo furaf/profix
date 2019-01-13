@@ -1,11 +1,11 @@
+use std::num::Wrapping;
+use std::str;
+
 use super::detail::parse_fix_message;
 use super::detail::FixDeserializable;
 use super::detail::FixSerializable;
 use super::FixParse;
 use super::ParseError;
-
-use std::num::Wrapping;
-use std::str;
 
 #[inline]
 pub fn serialize<T: FixSerializable>(t: &T) -> String {

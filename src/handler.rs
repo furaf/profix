@@ -1,7 +1,5 @@
 use std::convert::From;
 
-use action::Action;
-
 use client::MessageValidationErr;
 use detail::FixDeserializable;
 use FixClient;
@@ -18,7 +16,7 @@ impl From<MessageValidationErr> for HandleErr {
     }
 }
 
-pub trait FixHandler<SessionMsg: FixDeserializable, AppMsg: FixDeserializable> {
+pub trait FixHandler<SessionMsg: FixDeserializable, AppMsg: FixDeserializable, Action> {
     fn handle_session(&mut self, client: &mut FixClient, msg: SessionMsg) -> Result<(), HandleErr>;
     fn handle_app(&mut self, client: &mut FixClient, msg: AppMsg) -> Result<(), HandleErr>;
 

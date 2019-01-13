@@ -19,7 +19,6 @@ mod handler;
 mod parsing;
 mod serialization;
 mod timestamp;
-mod action;
 
 pub type ParseError = &'static str;
 

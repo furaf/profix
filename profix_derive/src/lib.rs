@@ -137,7 +137,7 @@ fn impl_fix_parse_enum(name: syn::Ident, variants: Vec<syn::Variant>) -> quote::
         const #dummy_const: () = {
             extern crate profix;
             impl profix::FixParse for #name {
-                fn parse(value: &[u8]) -> Result<Self, fix::ParseError> {
+                fn parse(value: &[u8]) -> Result<Self, profix::ParseError> {
                     #(
                         if value == #values {
                             return Ok(#names::#idents);
@@ -306,7 +306,7 @@ fn impl_fix_deserialize_group_struct(
 
             impl profix::detail::FixDeserializableGroup for #name {
                 fn deserialize_group_from_fix(_expected_length: usize, _input_arg: &[u8])
-                    -> Result<(Vec<Self>, profix::detail::ParserContinuation), fix::ParseError>
+                    -> Result<(Vec<Self>, profix::detail::ParserContinuation), profix::ParseError>
                 {
                     let mut _input = _input_arg;
                     let mut _checksum = ::std::num::Wrapping(0u8);
@@ -381,7 +381,7 @@ fn impl_fix_deserialize_struct(
             }
 
             impl profix::detail::FixDeserializable for #name {
-                fn deserialize_from_fix(_msg: profix::detail::FixMessage) -> Result<Self, fix::ParseError> {
+                fn deserialize_from_fix(_msg: profix::detail::FixMessage) -> Result<Self, profix::ParseError> {
                     #( #intros )*
 
                     let mut _input = _msg.body;

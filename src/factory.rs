@@ -1,12 +1,7 @@
 use std;
-use std::fmt::Debug;
-use std::net::TcpStream;
-use std::sync::mpsc::Sender;
 
 use native_tls;
-use native_tls::TlsStream;
 
-use detail::FixSerializable;
 use FixClient;
 
 #[derive(Debug)]
@@ -41,6 +36,8 @@ pub struct CompIds {
 }
 
 pub trait FixFactory<Handler> {
+    //called everytime we need to establish connection.
     fn connection_factory(&self) -> Result<FixClient, ConnectionFailure>;
+    //called everytime we established connection.
     fn handler_factory(&self) -> Handler;
 }

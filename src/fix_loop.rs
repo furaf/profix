@@ -1,17 +1,15 @@
 use std;
 use std::fmt::Debug;
 use std::str;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::Receiver;
 use std::thread::sleep;
 use std::time::Duration;
 
 use deserialize;
-use detail::{FixDeserializable, FixSerializable};
-use CompIds;
+use detail::{FixDeserializable};
 use FixClient;
 use FixFactory;
 use FixHandler;
-use action::Action;
 
 fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     haystack
@@ -19,14 +17,15 @@ fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
         .position(|window| window == needle)
 }
 
-pub fn fix_loop<Factory, Sess, App, H>(
+pub fn fix_loop<Factory, Sess, App, H, Action>(
     fix_factory: Factory,
     action_rx: Receiver<Action>,
 ) where
     Sess: FixDeserializable + Debug,
     App: FixDeserializable + Debug,
-    H: FixHandler<Sess, App>,
+    H: FixHandler<Sess, App, Action>,
     Factory: FixFactory<H>,
+    Action: Debug,
 {
     loop {
         info!("initiating connection to gdax fix");
@@ -97,10 +96,6 @@ pub fn fix_loop<Factory, Sess, App, H>(
                                 hard_break = true;
                                 break;
                             }
-                        }
-
-                        if slice_begin >= size {
-                            break;
                         }
                     }
                 }

@@ -1,8 +1,9 @@
-use super::ParseError;
 use std::num::Wrapping;
 use std::ops::AddAssign;
 use std::ops::MulAssign;
 use std::result::Result;
+
+use super::ParseError;
 
 const VERSION_ID: u64 = 8u64;
 const LENGTH_ID: u64 = 9u64;
