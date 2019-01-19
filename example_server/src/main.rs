@@ -78,7 +78,7 @@ impl profix::FixHandler<ExampleSessionMessage, ExampleAppMessage, Action> for Ex
             return Ok(())
         }
 
-        println!("got msg: {:?}", msg);
+//        println!("got msg: {:?}", msg);
         match msg {
             ExampleAppMessage::ExecReport(_) => {
                 if let Err(e) = self.tx.send(HandlerFeedback::OrderPlaced) {
@@ -107,6 +107,8 @@ impl profix::FixHandler<ExampleSessionMessage, ExampleAppMessage, Action> for Ex
                     quote_status : 0,
                     transact_time : Timestamp::now(),
                 };
+
+                client.send(&ack);
             },
             ExampleAppMessage::QuoteCancel(qc) => {
                 let quote_entry = &qc.quote_entries[0];
@@ -132,6 +134,8 @@ impl profix::FixHandler<ExampleSessionMessage, ExampleAppMessage, Action> for Ex
 
                     transact_time : Timestamp::now(),
                 };
+
+                client.send(&qs);
             }
 ////                println!("hai");
 //                println!("Message rate: {}", self.messages_this_second);
