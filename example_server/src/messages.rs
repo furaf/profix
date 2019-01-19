@@ -2,7 +2,7 @@ use std::fmt;
 
 use profix::*;
 
-#[derive(Debug, PartialEq, FixHeader, FixSerialize)]
+#[derive(Debug, PartialEq, FixHeader, FixDeserialize)]
 #[msg_type = "A"]
 pub struct LogonReq {
     #[id = "34"]
@@ -15,9 +15,25 @@ pub struct LogonReq {
     pub sending_time: Timestamp,
 }
 
-#[derive(Debug, PartialEq, FixHeader, FixDeserialize)]
+
+#[derive(Debug, PartialEq, FixHeader, FixSerialize)]
 #[msg_type = "A"]
 pub struct LogonResp {
+    #[id = "34"]
+    pub seq: u64,
+    #[id = "49"]
+    pub sender: String,
+    #[id = "56"]
+    pub target: String,
+    #[id = "52"]
+    pub sending_time: Timestamp,
+}
+
+
+
+#[derive(Debug, PartialEq, FixHeader, FixDeserialize)]
+#[msg_type = "0"]
+pub struct Heartbeat {
     #[id = "34"]
     pub seq: u64,
     #[id = "49"]
@@ -224,6 +240,19 @@ pub struct MassQuote {
 #[derive(Debug, PartialEq, FixHeader, FixDeserialize, FixSerialize)]
 #[msg_type = "b"]
 pub struct MassQuoteAck {
+    #[id = "34"]
+    pub seq: u64,
+    #[id = "49"]
+    pub sender: String,
+    #[id = "56"]
+    pub target: String,
+    #[id = "52"]
+    pub sending_time: Timestamp,
+}
+
+#[derive(Debug, PartialEq, FixHeader, FixDeserialize, FixSerialize)]
+#[msg_type = "Z"]
+pub struct QuoteCancel {
     #[id = "34"]
     pub seq: u64,
     #[id = "49"]

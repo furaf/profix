@@ -49,7 +49,7 @@ pub fn fix_loop<Factory, Sess, App, H, Action>(
         loop {
             let mut hard_break = false;
 
-            let mut resp_buffer_all = [0; 20000];
+            let mut resp_buffer_all = [0; 200000];
 
             match client.poll(&mut resp_buffer_all) {
                 Ok(size) => {
