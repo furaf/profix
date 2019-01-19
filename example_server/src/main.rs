@@ -55,18 +55,21 @@ struct ExampleHandler {
 impl profix::FixHandler<ExampleSessionMessage, ExampleAppMessage, Action> for ExampleHandler {
     fn handle_session(&mut self, client: &mut FixClient, msg: ExampleSessionMessage) -> Result<(), HandleErr> {
         match msg {
-            ExampleSessionMessage::LogonReq(_) => {
+            ExampleSessionMessage::LogonReq(logon) => {
                 self.is_logged = true;
                 println!("Client has logged in.");
 
-//                let resp = LogonResp {
-//                    sending_time : Timestamp::now(),
-//                    seq : client.get_next_send_seq(),
-//                    sender : client.comp_ids().sender.clone(),
-//                    target : client.comp_ids().target.clone(),
-//                };
-//
-//                client.send(&resp);
+                let resp = LogonResp {
+                    sending_time : Timestamp::now(),
+                    sender : logon.target,
+                    target : logon.sender,
+                    seq : client.get_next_send_seq(),
+                    default_app_ver_id : '9',
+                    encrypt_method : '0',
+                    heartbeat_interval: 5000,
+                };
+
+                client.send(&resp);
             },
         }
 
@@ -87,9 +90,18 @@ impl profix::FixHandler<ExampleSessionMessage, ExampleAppMessage, Action> for Ex
             },
             ExampleAppMessage::MassQuote(mq) => {
 
-                let mut quote_entries = vec![];
+                let qs = &mq.quote_sets[0];
+                let qe = &qs.quote_entries[0];
+                let mut quote_entries = vec![
+//                    QuoteEntryGroupOut {
+//                        bid_size: 0.0,
+//                        bid_price: 0.0,
+//                        ask_price : 0.0,
+//                        offer_size: 0.0,
+//
+//                    }
+                ];
                 let quote_entries_len = quote_entries.len();
-                let mq : messages::MassQuote = mq;
                 let ack = MassQuoteAck {
                     target: mq.sender,
                     sender : mq.target,

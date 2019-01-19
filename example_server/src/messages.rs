@@ -356,7 +356,7 @@ pub struct MassQuote {
     #[id = "453"]
     pub party_ids : Vec<PartyIdGroup>,
     #[id = "296"]
-    quote_sets : Vec<QuoteSetsGroup>,
+    pub quote_sets : Vec<QuoteSetsGroup>,
 }
 
 #[derive(Debug, PartialEq, FixHeader, FixSerialize)]
