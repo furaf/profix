@@ -278,6 +278,16 @@ pub struct QuoteSetsGroupOut {
 }
 
 #[derive(FixDeserializeGroup, FixSerializeGroup, Debug, PartialEq)]
+pub struct QuoteEntryGroupMini {
+    #[id = "55"]
+    pub symbol: String,
+    #[id = "48"]
+    pub security_id: String,
+    #[id = "22"]
+    pub security_id_source: i32,
+}
+
+#[derive(FixDeserializeGroup, FixSerializeGroup, Debug, PartialEq)]
 pub struct QuoteEntryGroup {
     #[id = "299"]
     pub quote_entry_id: String,
@@ -389,7 +399,7 @@ pub struct QuoteCancel {
     pub quote_req_id : String,
 
     #[id = "295"]
-    pub quote_entries : Vec<QuoteEntryGroup>
+    pub quote_entries : Vec<QuoteEntryGroupMini>
 }
 //
 #[derive(Debug, PartialEq, FixHeader, FixSerialize)]
@@ -406,8 +416,8 @@ pub struct QuoteStatusReport {
 
     #[id = "131"]
     pub quote_req_id : String,
-    #[id = "117"]
-    pub quote_id: String,
+//    #[id = "117"]
+//    pub quote_id: String,
 
     #[id = "55"]
     pub symbol: String,
@@ -501,7 +511,7 @@ mod messages_test {
             party_id : Hax(vec![ PartyIdGroup {
                 party_id : "1".into(),
                 party_id_source : "D".into(),
-                party_role : '3',
+                party_role : 66,
 
             } ]),
 

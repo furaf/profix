@@ -120,7 +120,7 @@ impl profix::FixHandler<ExampleSessionMessage, ExampleAppMessage, Action> for Ex
                     security_id : "DummySecurityID".into(),
                     security_id_source : 8,
                     symbol :  quote_entry.symbol.clone(),
-                    quote_id : quote_entry.quote_entry_id.clone(),
+//                    quote_id : "".to,
                     quote_req_id : qc.quote_req_id,
 
                     party_id : Hax(vec![ PartyIdGroup {
