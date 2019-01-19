@@ -121,7 +121,7 @@ impl profix::FixHandler<ExampleSessionMessage, ExampleAppMessage, Action> for Ex
                     party_id : Hax(vec![ PartyIdGroup {
                         party_id : "1".into(),
                         party_id_source : "D".into(),
-                        party_role : '3',
+                        party_role : 66,
 
                     } ]),
 

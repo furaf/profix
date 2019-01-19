@@ -254,7 +254,7 @@ pub struct PartyIdGroup {
     #[id = "447"]
     pub party_id_source: String,
     #[id = "452"]
-    pub party_role: char,
+    pub party_role: i32,
 }
 
 #[derive(FixDeserializeGroup, Debug, PartialEq)]
