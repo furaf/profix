@@ -27,6 +27,13 @@ pub struct LogonResp {
     pub target: String,
     #[id = "52"]
     pub sending_time: Timestamp,
+
+    #[id = "98"]
+    pub encrypt_method : char,
+    #[id = "108"]
+    pub heartbeat_interval: i32,
+    #[id = "1137"]
+    pub default_app_ver_id : char,
 }
 
 
@@ -224,7 +231,104 @@ pub struct ExecReportResp {
     pub aggressor_indicator: Option<String>,
 }
 
-#[derive(Debug, PartialEq, FixHeader, FixDeserialize, FixSerialize)]
+
+#[derive(PartialEq, Debug)]
+pub struct Hax<T>(pub Vec<T>);
+
+impl<T> ::std::fmt::Display for Hax<T> where T: profix::detail::FixSerializableGroup {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+        write!(f, "{}", self.0.len());
+
+        for e in &self.0 {
+            write!(f, "\x01{}", e.serialize_group_to_fix());
+        };
+
+        Ok(())
+    }
+}
+
+#[derive(FixDeserializeGroup, FixSerializeGroup, Debug, PartialEq)]
+pub struct PartyIdGroup {
+    #[id = "448"]
+    pub party_id: String,
+    #[id = "447"]
+    pub party_id_source: String,
+    #[id = "452"]
+    pub party_role: char,
+}
+
+#[derive(FixDeserializeGroup, Debug, PartialEq)]
+pub struct QuoteSetsGroup {
+    #[id = "302"]
+    pub quote_set_id: String,
+    #[id = "304"]
+    pub tot_no_quote_entries: i32,
+    #[id = "295"]
+    pub quote_entries: Vec<QuoteEntryGroup>,
+}
+
+#[derive(FixSerializeGroup, Debug, PartialEq)]
+pub struct QuoteSetsGroupOut {
+    #[id = "302"]
+    pub quote_set_id: String,
+    #[id = "304"]
+    pub tot_no_quote_entries: i32,
+    #[id = "295"]
+    pub quote_entries: Hax<QuoteEntryGroupOut>,
+}
+
+#[derive(FixDeserializeGroup, FixSerializeGroup, Debug, PartialEq)]
+pub struct QuoteEntryGroup {
+    #[id = "299"]
+    pub quote_entry_id: String,
+    #[id = "55"]
+    pub symbol: String,
+    #[id = "48"]
+    pub security_id: String,
+    #[id = "22"]
+    pub security_id_source: i32,
+
+    #[id = "132"]
+    pub bid_price : f64,
+    #[id = "133"]
+    pub ask_price : f64,
+
+    #[id = "134"]
+    pub bid_size : f64,
+    #[id = "135"]
+    pub offer_size : f64,
+
+//    #[id = "60"]
+//    pub transact_time : Option<Timestamp>,
+}
+
+#[derive(FixDeserializeGroup, FixSerializeGroup, Debug, PartialEq)]
+pub struct QuoteEntryGroupOut {
+    #[id = "299"]
+    pub quote_entry_id: String,
+    #[id = "55"]
+    pub symbol: String,
+    #[id = "48"]
+    pub security_id: String,
+    #[id = "22"]
+    pub security_id_source: i32,
+
+    #[id = "132"]
+    pub bid_price : f64,
+    #[id = "133"]
+    pub ask_price : f64,
+
+    #[id = "134"]
+    pub bid_size : f64,
+    #[id = "135"]
+    pub offer_size : f64,
+
+    #[id = "60"]
+    pub transact_time : Timestamp,
+}
+
+
+#[derive(Debug, PartialEq, FixHeader, FixDeserialize)]
 #[msg_type = "i"]
 pub struct MassQuote {
     #[id = "34"]
@@ -235,9 +339,17 @@ pub struct MassQuote {
     pub target: String,
     #[id = "52"]
     pub sending_time: Timestamp,
+
+    #[id = "117"]
+    pub quote_id : String,
+
+    #[id = "453"]
+    pub party_ids : Vec<PartyIdGroup>,
+    #[id = "296"]
+    quote_sets : Vec<QuoteSetsGroup>,
 }
 
-#[derive(Debug, PartialEq, FixHeader, FixDeserialize, FixSerialize)]
+#[derive(Debug, PartialEq, FixHeader, FixSerialize)]
 #[msg_type = "b"]
 pub struct MassQuoteAck {
     #[id = "34"]
@@ -248,9 +360,20 @@ pub struct MassQuoteAck {
     pub target: String,
     #[id = "52"]
     pub sending_time: Timestamp,
-}
 
-#[derive(Debug, PartialEq, FixHeader, FixDeserialize, FixSerialize)]
+    #[id = "117"]
+    pub quote_id : String,
+    #[id = "297"]
+    pub quote_status : i32,
+
+    #[id = "60"]
+    pub transact_time : Timestamp,
+
+    #[id = "296"]
+    pub quote_sets : Hax<QuoteSetsGroupOut>,
+}
+//
+#[derive(Debug, PartialEq, FixHeader, FixDeserialize)]
 #[msg_type = "Z"]
 pub struct QuoteCancel {
     #[id = "34"]
@@ -261,4 +384,130 @@ pub struct QuoteCancel {
     pub target: String,
     #[id = "52"]
     pub sending_time: Timestamp,
+
+    #[id = "131"]
+    pub quote_req_id : String,
+
+    #[id = "295"]
+    pub quote_entries : Vec<QuoteEntryGroup>
+}
+//
+#[derive(Debug, PartialEq, FixHeader, FixSerialize)]
+#[msg_type = "AI"]
+pub struct QuoteStatusReport {
+    #[id = "34"]
+    pub seq: u64,
+    #[id = "49"]
+    pub sender: String,
+    #[id = "56"]
+    pub target: String,
+    #[id = "52"]
+    pub sending_time: Timestamp,
+
+    #[id = "131"]
+    pub quote_req_id : String,
+    #[id = "117"]
+    pub quote_id: String,
+
+    #[id = "55"]
+    pub symbol: String,
+    #[id = "48"]
+    pub security_id: String,
+    #[id = "22"]
+    pub security_id_source: i32,
+
+    #[id = "297"]
+    pub quote_status : i32,
+
+    #[id = "453"]
+    pub party_id : Hax<PartyIdGroup>,
+
+    #[id = "60"]
+    pub transact_time : Timestamp,
+}
+
+#[cfg(test)]
+mod messages_test {
+    use super::*;
+
+    pub fn to_fix(s : &str) -> Vec<u8> {
+        s.replace('|', "\x01").as_bytes().iter().map(|a| *a).collect()
+    }
+    #[test]
+    fn mass_quote_parse() {
+        let mq = to_fix("8=FIXT.1.1|9=407|35=i|49=Fake1|56=FakeExchange|34=3|52=20190119-16:53:28.997|117=TC.D.A0.opt0.IP#mq_1547916808997138090_5|453=1|448=IG_MM|447=D|452=66|296=1|302=1|304=3|295=3|299=0|55=TC.D.A0.opt0.IP|48=TC.D.A0.opt0.IP|22=8|132=48.0|133=50.0|134=5.0|135=5.0|299=1|55=TC.D.A0.opt0.IP|48=TC.D.A0.opt0.IP|22=8|132=48.0|133=51.0|134=5.0|135=5.0|299=2|55=TC.D.A0.opt0.IP|48=TC.D.A0.opt0.IP|22=8|132=47.0|133=51.0|134=5.0|135=5.0|10=099|");
+
+        let result : Result<MassQuote, _> = profix::deserialize(&mq);
+        assert!(result.is_ok())
+    }
+
+    #[test]
+    fn quote_cancel_parse() {
+        let qc = to_fix("8=FIXT.1.1|9=170|35=Z|49=Fake1|56=FakeExchange|34=4|52=20190119-16:53:28.997|131=TC.D.A0.opt0.IP#mqc_5|298=1|453=1|448=IG_MM|447=D|452=66|295=1|55=TC.D.A0.opt0.IP|48=TC.D.A0.opt0.IP|22=8|10=042|");
+
+        let result : Result<QuoteCancel, _> = profix::deserialize(&qc);
+        assert!(result.is_ok())
+    }
+
+    #[test]
+    fn quote_ack_serialize() {
+        let ack = MassQuoteAck {
+            target : "FakeExchange".into(),
+            sender : "Fake1".into(),
+            seq : 4,
+            sending_time : Timestamp::now(),
+            quote_id : "TC.D.A0.opt0.IP#mqc_5".into(),
+            quote_sets : Hax(vec![
+                QuoteSetsGroupOut {
+                    quote_set_id : "1".into(),
+                    tot_no_quote_entries : 1,
+                    quote_entries : Hax(vec![
+//                        QuoteEntryGroupOut {
+//                            symbol : "TC.D.A0.opt0.IP".into(),
+//                            security_id : "TC.D.A0.opt0.IP".into(),
+//                            security_id_source : 8,
+//                            ask_price : 10.0,
+//                            bid_price : 5.0,
+//                            offer_size : 10.0,
+//                            bid_size : 5.0,
+//                            quote_entry_id : "0".into(),
+//                            transact_time : Timestamp::now(),
+//                        },
+                    ]),
+                }]),
+            quote_status : 0,
+            transact_time : Timestamp::now(),
+        };
+
+        let serialized = profix::serialize(&ack);
+        assert_eq!("", serialized);
+    }
+
+    #[test]
+    fn quote_status_report_serialize() {
+        let qs = QuoteStatusReport {
+            target : "FakeExchange".into(),
+            sender : "Fake1".into(),
+            seq : 4,
+            sending_time : Timestamp::now(),
+
+            quote_status : 1,
+            security_id : "DummySecurityID".into(),
+            security_id_source : 8,
+            symbol : "TC.D.A0.opt0.IP".into(),
+            quote_id : "TC.D.A0.opt0.IP#mq_1547916808997138090_5".into(),
+            quote_req_id : "TC.D.A0.opt0.IP#mqc_5".into(),
+
+            party_id : Hax(vec![ PartyIdGroup {
+                party_id : "1".into(),
+                party_id_source : "D".into(),
+                party_role : '3',
+
+            } ]),
+
+            transact_time : Timestamp::now(),
+        };
+
+        let serialized = profix::serialize(&qs);
+    }
 }

@@ -30,6 +30,7 @@ enum ExampleSessionMessage {
 enum ExampleAppMessage {
     ExecReport(ExecReportResp),
     MassQuote(MassQuote),
+    QuoteCancel(QuoteCancel),
 }
 
 #[derive(Debug)]
@@ -58,14 +59,14 @@ impl profix::FixHandler<ExampleSessionMessage, ExampleAppMessage, Action> for Ex
                 self.is_logged = true;
                 println!("Client has logged in.");
 
-                let resp = LogonResp {
-                    sending_time : Timestamp::now(),
-                    seq : client.get_next_send_seq(),
-                    sender : client.comp_ids().sender.clone(),
-                    target : client.comp_ids().target.clone(),
-                };
-
-                client.send(&resp);
+//                let resp = LogonResp {
+//                    sending_time : Timestamp::now(),
+//                    seq : client.get_next_send_seq(),
+//                    sender : client.comp_ids().sender.clone(),
+//                    target : client.comp_ids().target.clone(),
+//                };
+//
+//                client.send(&resp);
             },
         }
 
@@ -80,27 +81,74 @@ impl profix::FixHandler<ExampleSessionMessage, ExampleAppMessage, Action> for Ex
                 }
             },
             ExampleAppMessage::MassQuote(mq) => {
-//                println!("hai");
-                println!("Message rate: {}", self.messages_this_second);
 
-                if Instant::now().duration_since(self.this_second) >= Duration::from_secs(1) {
-                    println!("Message rate: {}", self.messages_this_second);
-
-                    self.messages_this_second = 0;
-                    self.this_second = Instant::now();
-                }
-//                println!("got mq!");
-                let mqa = MassQuoteAck {
-                    sending_time : Timestamp::now(),
+                let mut quote_entries = vec![];
+                let quote_entries_len = quote_entries.len();
+                let mq : messages::MassQuote = mq;
+                let ack = MassQuoteAck {
+                    target: mq.sender,
+                    sender : mq.target,
                     seq : client.get_next_send_seq(),
-                    sender : client.comp_ids().sender.clone(),
-                    target : client.comp_ids().target.clone(),
+                    sending_time : Timestamp::now(),
+                    quote_id : mq.quote_id,
+                    quote_sets : Hax(vec![
+                        QuoteSetsGroupOut {
+                            quote_set_id : "1".into(),
+                            tot_no_quote_entries : quote_entries_len as i32,
+                            quote_entries : Hax(quote_entries),
+
+                        }
+                    ]),
+                    quote_status : 0,
+                    transact_time : Timestamp::now(),
                 };
+            },
+            ExampleAppMessage::QuoteCancel(qc) => {
+                let quote_entry = &qc.quote_entries[0];
+                let qs = QuoteStatusReport {
+                    target : qc.sender,
+                    sender : qc.target,
+                    seq : client.get_next_send_seq(),
+                    sending_time : Timestamp::now(),
 
-                client.send(&mqa);
-                self.messages_this_second += 1;
+                    quote_status : 1,
+                    security_id : "DummySecurityID".into(),
+                    security_id_source : 8,
+                    symbol :  quote_entry.symbol.clone(),
+                    quote_id : quote_entry.quote_entry_id.clone(),
+                    quote_req_id : qc.quote_req_id,
 
+                    party_id : Hax(vec![ PartyIdGroup {
+                        party_id : "1".into(),
+                        party_id_source : "D".into(),
+                        party_role : '3',
+
+                    } ]),
+
+                    transact_time : Timestamp::now(),
+                };
             }
+////                println!("hai");
+//                println!("Message rate: {}", self.messages_this_second);
+//
+//                if Instant::now().duration_since(self.this_second) >= Duration::from_secs(1) {
+//                    println!("Message rate: {}", self.messages_this_second);
+//
+//                    self.messages_this_second = 0;
+//                    self.this_second = Instant::now();
+//                }
+////                println!("got mq!");
+////                let mqa = MassQuoteAck {
+////                    sending_time : Timestamp::now(),
+////                    seq : client.get_next_send_seq(),
+////                    sender : client.comp_ids().sender.clone(),
+////                    target : client.comp_ids().target.clone(),
+////                };
+////
+////                client.send(&mqa);
+//                self.messages_this_second += 1;
+//
+//            }
         }
 
         Ok(())

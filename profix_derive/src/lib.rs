@@ -27,6 +27,14 @@ pub fn fix_deserialize(input: TokenStream) -> TokenStream {
     }
 }
 
+#[proc_macro_derive(FixSerializeGroup, attributes(id))]
+pub fn fix_serialize_group(input: TokenStream) -> TokenStream {
+    let s = input.to_string();
+    let ast = syn::parse_derive_input(&s).unwrap();
+    let gen = impl_fix_serialize_group(ast);
+    gen.parse().unwrap()
+}
+
 #[proc_macro_derive(FixDeserializeGroup, attributes(id))]
 pub fn fix_deserialize_group(input: TokenStream) -> TokenStream {
     let s = input.to_string();
@@ -82,6 +90,38 @@ fn impl_fix_serialize(ast: syn::DeriveInput) -> quote::Tokens {
                     }
                 }
             };
+        }
+    } else {
+        panic!("#[derive(FixSerialize)] is only defined for structs")
+    }
+}
+
+fn impl_fix_serialize_group(ast: syn::DeriveInput) -> quote::Tokens {
+    let name = &ast.ident;
+
+    if let syn::Body::Struct(syn::VariantData::Struct(fields)) = ast.body {
+        let fields = find_fix_fields(&fields);
+
+        let ids = fields.iter().map(|f| f.id.to_string());
+        let idents = fields.iter().map(|f| f.ident.clone());
+        let dummy_const = syn::Ident::new(format!("_IMPL_FIX_SERIALIZE_GROUP_FOR_{}", name));
+
+        quote! {
+            #[allow(non_upper_case_globals)]
+            const #dummy_const: () = {
+                extern crate profix;
+                impl profix::detail::FixSerializableGroup for #name {
+                    fn serialize_group_to_fix(&self) -> String {
+                        let mut s = format!(concat!(concat!(#(#ids, "={}\x01"),* )), #(self.#idents),*);
+                        s.pop();
+                        s
+                    }
+                }
+            };
+
+//            pub trait FixSerializableGroup {
+//        fn serialize_group_to_fix(&self) -> String;
+//    }
         }
     } else {
         panic!("#[derive(FixSerialize)] is only defined for structs")

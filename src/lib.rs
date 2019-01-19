@@ -59,6 +59,10 @@ pub mod detail {
         fn serialize_body_to_fix(&self) -> String;
     }
 
+    pub trait FixSerializableGroup {
+        fn serialize_group_to_fix(&self) -> String;
+    }
+
     pub trait FixDeserializable: Sized {
         fn deserialize_from_fix(msg: FixMessage) -> Result<Self, ParseError>;
     }
