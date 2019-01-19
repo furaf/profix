@@ -74,6 +74,11 @@ impl profix::FixHandler<ExampleSessionMessage, ExampleAppMessage, Action> for Ex
     }
 
     fn handle_app(&mut self, client: &mut FixClient, msg: ExampleAppMessage) -> Result<(), HandleErr> {
+        if !self.is_logged {
+            return Ok(())
+        }
+
+        println!("got msg: {:?}", msg);
         match msg {
             ExampleAppMessage::ExecReport(_) => {
                 if let Err(e) = self.tx.send(HandlerFeedback::OrderPlaced) {
