@@ -59,7 +59,7 @@ impl profix::FixHandler<ExampleSessionMessage, ExampleAppMessage, Action> for Ex
                 }
             },
             ExampleAppMessage::MassQuoteAck(mqa) => {
-//                println!("got mqa!");
+                println!("got mqa!");
 //                let mq = MassQuote {
 //                    sending_time : Timestamp::now(),
 //                    seq : client.get_next_send_seq(),
@@ -77,12 +77,14 @@ impl profix::FixHandler<ExampleSessionMessage, ExampleAppMessage, Action> for Ex
     fn handle_action(&mut self, client: &mut FixClient, action: Action) {
         match action {
             Action::SendMassQuote => {
-                for i in 0..1000 {
+                println!("client sending mq!");
+                for i in 0..1 {
                     let mq = MassQuote {
                         sending_time: Timestamp::now(),
                         seq: client.get_next_send_seq(),
                         sender: client.comp_ids().sender.clone(),
                         target: client.comp_ids().target.clone(),
+                        quote_id : "1".to_string(),
                     };
 
                     client.send(&mq);
@@ -101,7 +103,7 @@ struct Factory {
 }
 
 impl profix::FixFactory<ExampleHandler> for Factory {
-    fn connection_factory(&self) -> Result<FixClient, ConnectionFailure> {
+    fn connection_factory(&mut self) -> Result<FixClient, ConnectionFailure> {
         let mut client = FixClient::new(CompIds { sender : "client".to_string(), target : "server".to_string() },
                           Box::new(PlainStreamWrapper::new(TcpStream::connect("127.0.0.1:3213").expect("server not found."))));
 
@@ -118,7 +120,7 @@ impl profix::FixFactory<ExampleHandler> for Factory {
         Ok(client)
     }
 
-    fn handler_factory(&self) -> ExampleHandler {
+    fn handler_factory(&mut self) -> ExampleHandler {
         ExampleHandler {
             is_logged : false,
             tx : self.tx.clone(),
@@ -138,6 +140,7 @@ fn main() {
                 println!("Logged In");
                 loop {
                     action_tx.send(Action::SendMassQuote).expect("sending action failure");
+                    println!("sending mq request");
                     ::std::thread::sleep(::std::time::Duration::from_millis(500));
                 }
             }

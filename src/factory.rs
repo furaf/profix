@@ -37,7 +37,7 @@ pub struct CompIds {
 
 pub trait FixFactory<Handler> {
     //called everytime we need to establish connection.
-    fn connection_factory(&self) -> Result<FixClient, ConnectionFailure>;
+    fn connection_factory(&mut self) -> Result<FixClient, ConnectionFailure>;
     //called everytime we established connection.
-    fn handler_factory(&self) -> Handler;
+    fn handler_factory(&mut self) -> Handler;
 }

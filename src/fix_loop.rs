@@ -18,7 +18,7 @@ fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
 }
 
 pub fn fix_loop<Factory, Sess, App, H, Action>(
-    fix_factory: Factory,
+    mut fix_factory: Factory,
     action_rx: Receiver<Action>,
 ) where
     Sess: FixDeserializable + Debug,
@@ -59,6 +59,12 @@ pub fn fix_loop<Factory, Sess, App, H, Action>(
                         find_subsequence(&resp_buffer_all[slice_begin..], "\x0110=".as_bytes())
                     {
                         let slice_end = slice_begin + pos + 8;
+
+                        if slice_end > size {
+                            //we are in data that was hopefully consumed before.
+                            //need to refactor this altogether.
+                            continue;
+                        }
                         let resp_buffer = &resp_buffer_all[slice_begin..slice_end];
                         slice_begin = slice_end;
 

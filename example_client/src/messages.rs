@@ -219,6 +219,9 @@ pub struct MassQuote {
     pub target: String,
     #[id = "52"]
     pub sending_time: Timestamp,
+
+    #[id = "117"]
+    pub quote_id : String,
 }
 
 #[derive(Debug, PartialEq, FixHeader, FixDeserialize, FixSerialize)]

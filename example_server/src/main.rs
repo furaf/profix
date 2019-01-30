@@ -10,6 +10,10 @@ mod messages;
 use std::net::TcpStream;
 use std::net::TcpListener;
 
+use std::io::Write;
+
+use std::thread::JoinHandle;
+
 use std::time::Duration;
 use std::time::Instant;
 
@@ -47,6 +51,8 @@ struct ExampleHandler {
     is_logged : bool,
 
     tx : Sender<HandlerFeedback>,
+    writer_thread : JoinHandle<()>,
+    writer_tx : Sender<(String, u64)>,
 
     messages_this_second : i32,
     this_second : Instant,
@@ -89,10 +95,10 @@ impl profix::FixHandler<ExampleSessionMessage, ExampleAppMessage, Action> for Ex
                 }
             },
             ExampleAppMessage::MassQuote(mq) => {
-
-                let qs = &mq.quote_sets[0];
-                let qe = &qs.quote_entries[0];
-                let mut quote_entries = vec![
+                println!("server received mass quote.");
+//                let qs = &mq.quote_sets[0];
+//                let qe = &qs.quote_entries[0];
+//                let mut quote_entries = vec![
 //                    QuoteEntryGroupOut {
 //                        bid_size: 0.0,
 //                        bid_price: 0.0,
@@ -100,27 +106,28 @@ impl profix::FixHandler<ExampleSessionMessage, ExampleAppMessage, Action> for Ex
 //                        offer_size: 0.0,
 //
 //                    }
-                ];
-                let quote_entries_len = quote_entries.len();
-                let ack = MassQuoteAck {
-                    target: mq.sender,
-                    sender : mq.target,
-                    seq : client.get_next_send_seq(),
-                    sending_time : Timestamp::now(),
-                    quote_id : mq.quote_id,
-                    quote_sets : Hax(vec![
-                        QuoteSetsGroupOut {
-                            quote_set_id : "1".into(),
-                            tot_no_quote_entries : quote_entries_len as i32,
-                            quote_entries : Hax(quote_entries),
-
-                        }
-                    ]),
-                    quote_status : 0,
-                    transact_time : Timestamp::now(),
-                };
-
-                client.send(&ack);
+//                ];
+//                let quote_entries_len = quote_entries.len();
+                self.writer_tx.send((mq.quote_id, client.get_next_send_seq()));
+//                let ack = MassQuoteAck {
+//                    target: mq.sender,
+//                    sender : mq.target,
+//                    seq : client.get_next_send_seq(),
+//                    sending_time : Timestamp::now(),
+//                    quote_id : mq.quote_id,
+//                    quote_sets : Hax(vec![
+//                        QuoteSetsGroupOut {
+//                            quote_set_id : "1".into(),
+//                            tot_no_quote_entries : quote_entries_len as i32,
+//                            quote_entries : Hax(quote_entries),
+//
+//                        }
+//                    ]),
+//                    quote_status : 0,
+//                    transact_time : Timestamp::now(),
+//                };
+//
+//                client.send(&ack);
             },
             ExampleAppMessage::QuoteCancel(qc) => {
                 let quote_entry = &qc.quote_entries[0];
@@ -203,20 +210,60 @@ impl profix::FixHandler<ExampleSessionMessage, ExampleAppMessage, Action> for Ex
 struct Factory {
     tx : Sender<HandlerFeedback>,
 
+
     listener : TcpListener,
+
+    last_writer : Option<TcpStream>,
 }
 
 impl profix::FixFactory<ExampleHandler> for Factory {
-    fn connection_factory(&self) -> Result<FixClient, ConnectionFailure> {
+    fn connection_factory(&mut self) -> Result<FixClient, ConnectionFailure> {
+        let tcp = self.listener.incoming().next().expect("failed to finish establshin connection").expect("2");
+
+        ::std::mem::swap(&mut self.last_writer, &mut Some(tcp.try_clone().expect("unable to clone")));
         Ok(FixClient::new(CompIds { sender : "server".to_string(), target : "client".to_string() },
-                          Box::new(PlainStreamWrapper::new(self.listener.incoming().next().expect("failed to finish establshin connection").expect("2") )),
-        ))
+                          Box::new(PlainStreamWrapper::new(tcp) )),
+        )
     }
 
-    fn handler_factory(&self) -> ExampleHandler {
+    fn handler_factory(&mut self) -> ExampleHandler {
+        let mut writer = None;
+        ::std::mem::swap(&mut self.last_writer, &mut writer);
+
+        let mut writer = writer.expect("No writer?");
+        let (writer_tx, writer_rx) = channel::<(String, u64) >();
+        let job = spawn(move || {
+            for (id, seq) in writer_rx {
+                let ack = MassQuoteAck {
+                    target: "target".to_string(),
+                    sender : "sender".to_string(),
+                    seq,
+                    sending_time : Timestamp::now(),
+                    quote_id : id,
+                    quote_sets : Hax(vec![
+                        QuoteSetsGroupOut {
+                            quote_set_id : "1".into(),
+                            tot_no_quote_entries : 1, //quote_entries_len as i32,
+                            quote_entries : Hax(vec![]),
+
+                        }
+                    ]),
+                    quote_status : 0,
+                    transact_time : Timestamp::now(),
+                };
+
+                let fix_msg = serialize(&ack);
+//                Self::log_send(&fix_msg);
+                writer.write_all(fix_msg.as_bytes()).unwrap();
+            }
+        });
+
         ExampleHandler {
             is_logged : false,
             tx : self.tx.clone(),
+
+            writer_thread : job,
+            writer_tx,
 
             this_second : Instant::now(),
             messages_this_second : 0,
@@ -237,6 +284,8 @@ fn main() {
     let factory = Factory {
         tx : feedback_tx.clone(),
         listener,
+
+        last_writer : None,
     };
 
     profix::fix_loop(factory, action_rx);
