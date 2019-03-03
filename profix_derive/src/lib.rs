@@ -83,7 +83,7 @@ fn impl_fix_serialize(ast: syn::DeriveInput) -> quote::Tokens {
         quote! {
             #[allow(non_upper_case_globals)]
             const #dummy_const: () = {
-                extern crate profix;
+                //extern crate profix;
                 impl profix::detail::FixSerializable for #name {
                     fn serialize_body_to_fix(&self) -> String {
                         format!(concat!("35=", #msg_type, "\x01", concat!(#(#ids, "={}\x01"),* )), #(self.#idents),*)
@@ -109,7 +109,7 @@ fn impl_fix_serialize_group(ast: syn::DeriveInput) -> quote::Tokens {
         quote! {
             #[allow(non_upper_case_globals)]
             const #dummy_const: () = {
-                extern crate profix;
+                //extern crate profix;
                 impl profix::detail::FixSerializableGroup for #name {
                     fn serialize_group_to_fix(&self) -> String {
                         let mut s = format!(concat!(concat!(#(#ids, "={}\x01"),* )), #(self.#idents),*);
@@ -175,7 +175,7 @@ fn impl_fix_parse_enum(name: syn::Ident, variants: Vec<syn::Variant>) -> quote::
     let tokens = quote! {
         #[allow(non_upper_case_globals)]
         const #dummy_const: () = {
-            extern crate profix;
+            //extern crate profix;
             impl profix::FixParse for #name {
                 fn parse(value: &[u8]) -> Result<Self, profix::ParseError> {
                     #(
@@ -342,7 +342,7 @@ fn impl_fix_deserialize_group_struct(
     let tokens = quote! {
         #[allow(non_upper_case_globals)]
         const #dummy_const: () = {
-            extern crate profix;
+            //extern crate profix;
 
             impl profix::detail::FixDeserializableGroup for #name {
                 fn deserialize_group_from_fix(_expected_length: usize, _input_arg: &[u8])
@@ -413,7 +413,7 @@ fn impl_fix_deserialize_struct(
     let tokens = quote! {
         #[allow(non_upper_case_globals)]
         const #dummy_const: () = {
-            extern crate profix;
+            //extern crate profix;
             use std::num::Wrapping;
 
             impl profix::detail::FixMessageType for #name {
@@ -490,7 +490,7 @@ fn impl_fix_deserialize_enum(name: syn::Ident, variants: Vec<syn::Variant>) -> q
     let tokens = quote! {
         #[allow(non_upper_case_globals)]
         const #dummy_const: () = {
-            extern crate profix;
+            //extern crate profix;
             use profix::detail::FixMessageType;
 
             impl profix::detail::FixDeserializable for #name {

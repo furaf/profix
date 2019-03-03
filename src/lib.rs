@@ -14,11 +14,13 @@ pub use self::profix_derive::*;
 
 mod client;
 mod factory;
-mod fix_loop;
+pub mod fix_loop;
 mod handler;
 mod parsing;
 mod serialization;
 mod timestamp;
+
+pub mod profix;
 
 pub type ParseError = &'static str;
 

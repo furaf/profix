@@ -17,6 +17,40 @@ fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
         .position(|window| window == needle)
 }
 
+pub struct Buffer {
+    pub data : Vec<u8>,
+    pub length : usize,
+    pub last_checked_pos : usize,
+}
+
+impl Buffer {
+    pub fn new() -> Buffer {
+        let mut initial = Vec::new();
+        //lets start with 1mb messages.
+        initial.reserve( 1 * 1024 * 1024);
+
+        Buffer {
+            data : initial,
+            length : 0,
+            last_checked_pos : 0,
+        }
+    }
+}
+
+pub trait MessageHandler<Msg: FixDeserializable> {
+    fn handle(&mut self, m : Msg);
+}
+
+pub fn parse_and_forward<Msg : FixDeserializable>(b : &mut Buffer, handler : &mut MessageHandler<Msg>) {
+    let  cksum = "\x0110=".as_bytes(); // then followed by 3 numbers and \x01 again. in total cksum = 8c
+    for i in  b.last_checked_pos .. b.data.len() - 8 {
+        if &b.data[i..i + cksum.len()] == cksum {
+
+        }
+    }
+}
+
+
 pub fn fix_loop<Factory, Sess, App, H, Action>(
     mut fix_factory: Factory,
     action_rx: Receiver<Action>,
@@ -136,3 +170,4 @@ pub fn fix_loop<Factory, Sess, App, H, Action>(
         sleep(Duration::from_secs(10));
     }
 }
+
